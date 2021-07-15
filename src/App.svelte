@@ -1,10 +1,15 @@
 <script lang="ts">
+	import Test from "./components/Test.svelte";
 	export let name: string;
+
+	let myName: string = 'Horst';
 </script>
 
 <main>
 	<h1>Hello {name}!</h1>
+	<p>My name is {myName}</p>
 	<p>Visit the <a href="https://svelte.dev/tutorial">Svelte tutorial</a> to learn how to build Svelte apps.</p>
+	<Test testi="Blubb" on:click={() => myName = 'Heinz'}/>
 </main>
 
 <style>
