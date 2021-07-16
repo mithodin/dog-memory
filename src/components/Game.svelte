@@ -35,7 +35,7 @@
 </script>
 {#if $state}
     {#each $state.state.cards as card, index}
-        <Card {backside} frontside={card.pictureURL} revealed={card.state !== CardState.HIDDEN} on:click={() => handleEvent(index)} />
+        <Card {backside} cardConfig={card} on:click={() => handleEvent(index)} />
     {/each}
-    { JSON.stringify($state.state)}
+    Player: {$state.state.player}
 {/if}
