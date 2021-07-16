@@ -16,6 +16,7 @@
     .card-container {
         height: 200px;
         width: 200px;
+        cursor: pointer;
     }
 
     .card-container img {

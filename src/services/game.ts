@@ -8,7 +8,7 @@ export enum CardState {
     SOLVED
 }
 
-interface GameState {
+export interface GameState {
     revealed: ReadonlyArray<number>;
     cards: ReadonlyArray<{
         readonly pictureURL: string;
@@ -75,8 +75,11 @@ class TwoCardsFlipped implements GameStateHandler<GameState, void> {
     }
 }
 
+export type MemoryGameStateHandler = GameStateHandler<GameState, number | void>;
+export type GameStore = Writable<MemoryGameStateHandler>
+
 const dogApiURL = 'https://random.dog/';
-export async function getGameStore(numPictures: number): Promise<Writable<GameStateHandler<GameState, number | void>>> {
+export async function getGameStore(numPictures: number): Promise<GameStore> {
     const dogApi = new DogApi(dogApiURL);
     const pictureURLs = await dogApi.getDogs(numPictures);
     const initialState: GameState = {
@@ -89,6 +92,6 @@ export async function getGameStore(numPictures: number): Promise<Writable<GameSt
     return writable(new NoCardFlipped(initialState));
 }
 
-export function getStoreUpdate(ev: number | void): Updater<GameStateHandler<GameState, number | void>> {
+export function getStoreUpdate(ev: number | void): Updater<MemoryGameStateHandler> {
     return (state) => state.rules(ev);
 }
