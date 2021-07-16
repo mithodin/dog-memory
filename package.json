@@ -11,28 +11,30 @@
     "test:watch": "npm test -- --watch"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^17.0.0",
-    "@rollup/plugin-node-resolve": "^11.0.0",
-    "@rollup/plugin-typescript": "^8.0.0",
+    "@rollup/plugin-commonjs": "^19.0.1",
+    "@rollup/plugin-node-resolve": "^13.0.2",
+    "@rollup/plugin-typescript": "^8.2.3",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/svelte": "^3.0.3",
     "@tsconfig/svelte": "^2.0.0",
     "@types/jest": "^26.0.24",
     "jest": "^27.0.6",
-    "rollup": "^2.3.4",
+    "rollup": "^2.53.2",
     "rollup-plugin-css-only": "^3.1.0",
     "rollup-plugin-livereload": "^2.0.0",
     "rollup-plugin-svelte": "^7.0.0",
     "rollup-plugin-terser": "^7.0.0",
+    "rollup-plugin-typescript2": "^0.30.0",
     "svelte": "^3.0.0",
     "svelte-check": "^2.0.0",
     "svelte-jester": "^1.7.0",
     "svelte-preprocess": "^4.0.0",
     "ts-jest": "^27.0.3",
     "tslib": "^2.0.0",
-    "typescript": "^4.0.0"
+    "typescript": "^4.3.5"
   },
   "dependencies": {
+    "axios": "^0.21.1",
     "sirv-cli": "^1.0.0"
   },
   "jest": {
