@@ -9,11 +9,15 @@ export class DogApi {
         this.api = axios.create({ baseURL: this.baseURL });
     }
 
-    public getDog(): Promise<string> {
+    public getDogURL(): Promise<string> {
         return this.api.get('/woof?include=jpg').then( response => `${this.baseURL}${response.data}`);
     }
 
     public getDogs(howMany: number): Promise<Array<string>> {
-        return Promise.all(new Array(howMany).fill(0).map(() => this.getDog()));
+        return Promise.all(new Array(howMany).fill(0).map(() => this.getDogURL().then( url => this.downloadDog(url))));
+    }
+
+    private downloadDog(url: string): Promise<string> {
+        return this.api.get(url, { responseType: 'blob'}).then( imgBlob => URL.createObjectURL(imgBlob.data))
     }
 }

@@ -7,13 +7,15 @@
 </script>
 
 <div class="card-container" on:click>
-    {#if cardConfig.state === CardState.REVEALED }
-        <img src={cardConfig.pictureURL} alt="a dog"/>
-    {:else if cardConfig.state === CardState.SOLVED }
-        <img src={cardConfig.pictureURL} alt="a dog" class="solved"/>
+    <img src={backside} alt="what could it be?" class:show={cardConfig.state === CardState.HIDDEN}/>
+    <img
+            src={cardConfig.pictureURL}
+            alt="a dog"
+            class:show={cardConfig.state !== CardState.HIDDEN}
+            class:solved={cardConfig.state === CardState.SOLVED}
+    />
+    {#if cardConfig.state === CardState.SOLVED }
         <div class="overlay" class:player-one={cardConfig.solvedBy === 0} class:player-two={cardConfig.solvedBy === 1}></div>
-    {:else}
-        <img src={backside} alt="what could it be?" />
     {/if}
 </div>
 
@@ -21,8 +23,8 @@
     .card-container {
         height: 200px;
         width: 200px;
-        cursor: pointer;
         position: relative;
+        margin: 5px;
     }
 
     .card-container img {
@@ -30,10 +32,17 @@
         width: 100%;
         object-fit: cover;
         border-radius: 20px;
+        cursor: pointer;
+        display:none;
+    }
+
+    .card-container img.show {
+        display:initial;
     }
 
     .card-container img.solved {
         filter: grayscale(1);
+        cursor: default;
     }
 
     .card-container .overlay {
