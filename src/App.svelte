@@ -3,13 +3,5 @@
 </script>
 
 <main>
-    <Game numPictures={4}/>
+    <Game numPictures={6}/>
 </main>
-
-<style>
-    main {
-		width: 400px;
-		display: flex;
-		flex-wrap: wrap;
-	}
-</style>
