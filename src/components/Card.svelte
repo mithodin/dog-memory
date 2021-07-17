@@ -7,7 +7,11 @@
     export let cardConfig: CardConfig;
 </script>
 
-<div class="card-container" on:click>
+<div class="card-container"
+     on:mouseup|preventDefault|stopPropagation
+     on:auxclick|stopPropagation|preventDefault
+     class:clickable={cardConfig.state === CardState.HIDDEN}
+>
     <img src={backside} alt={$t('img.backside.alt')} class:show={cardConfig.state === CardState.HIDDEN}/>
     <img
             src={cardConfig.pictureURL}
@@ -26,6 +30,13 @@
         width: 200px;
         position: relative;
         margin: 5px;
+        /* for mobile */
+        max-width: 29vw;
+        max-height: 29vw;
+    }
+
+    .clickable {
+        cursor: pointer;
     }
 
     .card-container img {
@@ -33,8 +44,8 @@
         width: 100%;
         object-fit: cover;
         border-radius: 20px;
-        cursor: pointer;
         display:none;
+        pointer-events: none;
     }
 
     .card-container img.show {
@@ -43,7 +54,6 @@
 
     .card-container img.solved {
         filter: grayscale(1);
-        cursor: default;
     }
 
     .card-container .overlay {

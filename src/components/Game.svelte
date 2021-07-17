@@ -66,7 +66,7 @@
     </div>
     <div class="cards" style={`max-width: ${columns * 210}px`}>
         {#each $state.state.cards as card, index}
-            <Card {backside} cardConfig={card} on:click={() => handleEvent(index)} />
+            <Card {backside} cardConfig={card} on:mouseup={() => handleEvent(index)} />
         {/each}
     </div>
 {:else}
