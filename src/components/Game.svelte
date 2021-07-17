@@ -3,6 +3,7 @@
     import Card from "./Card.svelte";
     import {getGameStore, getStoreUpdate} from "../services/game";
     import type {GameStore} from "../services/game";
+    import {navigate} from "svelte-routing";
 
     export let numPictures: number = 2;
 
@@ -19,6 +20,18 @@
             if( gameState.state?.revealed?.length === 2) {
                 waitingToResolve = true;
                 setTimeout(() => {state.update(getStoreUpdate(void 0)); waitingToResolve = false}, 1000)
+            }
+            if( gameState.state?.numSolved === gameState.state?.numPictures ){
+                const player1points = gameState.state.cards.filter(card => card.solvedBy === 0).length
+                const player2points = gameState.state.cards.filter(card => card.solvedBy === 1).length
+                if( player1points > player2points ){
+                    console.log('player 1 won!');
+                } else if( player2points > player1points ){
+                    console.log('player 2 won!');
+                } else {
+                    console.log("it's a draw");
+                }
+                setTimeout(() => navigate("/"), 2000);
             }
         })
     });

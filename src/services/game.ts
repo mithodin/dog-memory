@@ -18,6 +18,8 @@ export interface GameState {
     readonly revealed: ReadonlyArray<number>;
     readonly players: number;
     readonly player: number;
+    readonly numSolved: number;
+    readonly numPictures: number;
     readonly cards: ReadonlyArray<CardConfig>
 }
 
@@ -71,6 +73,7 @@ class TwoCardsFlipped implements GameStateHandler<GameState, void> {
         if( card1?.pictureURL === card2?.pictureURL ){
             return new NoCardFlipped({
                 ...this.state,
+                numSolved: this.state.numSolved + 1,
                 revealed: [],
                 cards: this.state.cards.map( (card, index) => this.state.revealed.includes(index) ? {...card, state: CardState.SOLVED, solvedBy: this.state.player} : card)
             });
@@ -95,6 +98,8 @@ export async function getGameStore(numPictures: number): Promise<GameStore> {
     const initialState: GameState = {
         players: 2,
         player: 0,
+        numSolved: 0,
+        numPictures,
         revealed: [],
         cards: shuffleArray(new Array(2*numPictures).fill(0).map((_,i) => ({
             state: CardState.HIDDEN,
