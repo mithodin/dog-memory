@@ -4,6 +4,8 @@
     import {getGameStore, getStoreUpdate} from "../services/game";
     import type {GameStore} from "../services/game";
     import {navigate} from "svelte-routing";
+    import {modalStore} from "../services/modal";
+    import Loading from "./Loading.svelte";
 
     export let numPictures: number = 2;
 
@@ -14,36 +16,43 @@
     let columns = 2;
 
     onMount(async () => {
-        columns = Math.ceil(Math.sqrt(2*numPictures));
+        columns = Math.ceil(Math.sqrt(2 * numPictures));
         state = await getGameStore(numPictures);
-        unsubscribeState = state.subscribe( gameState => {
-            if( gameState.state?.revealed?.length === 2) {
+        unsubscribeState = state.subscribe(gameState => {
+            if (gameState.state?.revealed?.length === 2) {
                 waitingToResolve = true;
-                setTimeout(() => {state.update(getStoreUpdate(void 0)); waitingToResolve = false}, 1000)
+                setTimeout(() => {
+                    state.update(getStoreUpdate(void 0));
+                    waitingToResolve = false
+                }, 1000)
             }
-            if( gameState.state?.numSolved === gameState.state?.numPictures ){
+            if (gameState.state?.numSolved === gameState.state?.numPictures) {
                 const player1points = gameState.state.cards.filter(card => card.solvedBy === 0).length
                 const player2points = gameState.state.cards.filter(card => card.solvedBy === 1).length
-                if( player1points > player2points ){
-                    console.log('player 1 won!');
-                } else if( player2points > player1points ){
-                    console.log('player 2 won!');
-                } else {
-                    console.log("it's a draw");
+                let gameResult = 'it\'s a draw';
+                if (player1points > player2points) {
+                    gameResult = 'player 1 won!';
+                } else if (player2points > player1points) {
+                    gameResult = 'player 2 won!';
                 }
-                setTimeout(() => navigate("/"), 2000);
+                modalStore.set({
+                    title: 'game over',
+                    message: gameResult,
+                    button: 'close',
+                    action: () => navigate('/')
+                });
             }
         })
     });
 
     onDestroy(() => {
-        if( unsubscribeState ){
+        if (unsubscribeState) {
             unsubscribeState();
         }
     });
 
-    function handleEvent(ev: number){
-        if(!waitingToResolve){
+    function handleEvent(ev: number) {
+        if (!waitingToResolve) {
             state.update(getStoreUpdate(ev))
         }
     }
@@ -60,7 +69,7 @@
         {/each}
     </div>
 {:else}
-    Loading...
+    <Loading />
 {/if}
 </div>
 
