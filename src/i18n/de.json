@@ -1,0 +1,25 @@
+{
+  "action":{
+    "play": "spielen",
+    "close": "schließen"
+  },
+  "img": {
+    "frontside": {
+      "alt": "ein Hund"
+    },
+    "backside": {
+      "alt": "Was kann es nur sein?"
+    }
+  },
+  "game": {
+    "loading": "Lade Bilder...",
+    "player1": "Spieler*in 1",
+    "player2": "Spieler*in 2",
+    "over": {
+      "title": "Spiel beendet",
+      "draw": "Unentschieden.",
+      "player1win": "Spieler*in 1 hat gewonnen!",
+      "player2win": "Spieler*in 2 hat gewonnen!"
+    }
+  }
+}

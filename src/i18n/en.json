@@ -1,0 +1,25 @@
+{
+  "action":{
+    "play": "play",
+    "close": "close"
+  },
+  "img": {
+    "frontside": {
+      "alt": "a dog"
+    },
+    "backside": {
+      "alt": "what could it be?"
+    }
+  },
+  "game": {
+    "loading": "Loading...",
+    "player1": "player 1",
+    "player2": "player 2",
+    "over": {
+      "title": "game over",
+      "draw": "it's a draw",
+      "player1win": "player 1 won!",
+      "player2win": "player 2 won!"
+    }
+  }
+}

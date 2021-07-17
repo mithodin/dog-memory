@@ -4,6 +4,7 @@
   "exclude": ["node_modules/*", "__sapper__/*", "public/*"],
   "compilerOptions": {
     "types": ["jest"],
-    "module": "ES6"
+    "module": "ESNext",
+    "resolveJsonModule": true
   }
 }

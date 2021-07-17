@@ -1,4 +1,5 @@
 <script lang="ts">
+    import {t} from "svelte-i18n";
     import {CardState} from "../services/game";
     import type {CardConfig} from "../services/game";
 
@@ -7,10 +8,10 @@
 </script>
 
 <div class="card-container" on:click>
-    <img src={backside} alt="what could it be?" class:show={cardConfig.state === CardState.HIDDEN}/>
+    <img src={backside} alt={$t('img.backside.alt')} class:show={cardConfig.state === CardState.HIDDEN}/>
     <img
             src={cardConfig.pictureURL}
-            alt="a dog"
+            alt={$t('img.frontside.alt')}
             class:show={cardConfig.state !== CardState.HIDDEN}
             class:solved={cardConfig.state === CardState.SOLVED}
     />

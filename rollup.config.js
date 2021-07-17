@@ -6,6 +6,7 @@ import { terser } from 'rollup-plugin-terser';
 import sveltePreprocess from 'svelte-preprocess';
 import css from 'rollup-plugin-css-only';
 import typescript from "@rollup/plugin-typescript";
+import json from "@rollup/plugin-json";
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -34,9 +35,9 @@ export default {
 	input: 'src/main.ts',
 	output: {
 		sourcemap: true,
-		format: 'iife',
+		format: 'es',
 		name: 'app',
-		file: 'public/build/bundle.js'
+		dir: 'public/build/'
 	},
 	plugins: [
 		svelte({
@@ -65,6 +66,7 @@ export default {
 			inlineSources: !production,
 			rootDir: './src'
 		}),
+        json(),
 
 		// In dev mode, call `npm run start` once
 		// the bundle has been generated

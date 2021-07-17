@@ -1,5 +1,7 @@
 <script>
     import {Router, Link, Route} from "svelte-routing";
+    import {t} from "svelte-i18n";
+    import {isLoading} from "svelte-i18n";
     import Game from "./components/Game.svelte";
     import Modal from "./components/Modal.svelte";
 
@@ -7,22 +9,25 @@
 
     const playIcon = '/assets/dog.svg';
 </script>
-<Router url={url}>
-    <Route path="play">
-        <Game numPictures={6}/>
-    </Route>
-    <Route path="/">
-        <nav>
-            <Link to="play">
-                <div class="play">
-                    <img src={playIcon} alt="play"/>
-                    <span class="text">play</span>
-                </div>
-            </Link>
-        </nav>
-    </Route>
-</Router>
-<Modal />
+
+{#if !$isLoading}
+    <Router url={url}>
+        <Route path="play">
+            <Game numPictures={6}/>
+        </Route>
+        <Route path="/">
+            <nav>
+                <Link to="play">
+                    <div class="play">
+                        <img src={playIcon} alt={$t('action.play')}/>
+                        <span class="text">{$t('action.play')}</span>
+                    </div>
+                </Link>
+            </nav>
+        </Route>
+    </Router>
+    <Modal />
+{/if}
 
 <style>
     nav {

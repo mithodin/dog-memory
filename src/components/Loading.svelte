@@ -1,3 +1,6 @@
+<script lang="ts">
+    import {t} from "svelte-i18n";
+</script>
 <svg id="svg-sprite">
     <symbol id="paw" viewBox="0 0 249 209.32">
         <ellipse cx="27.917" cy="106.333" stroke-width="0" rx="27.917" ry="35.833"/>
@@ -17,8 +20,7 @@
         <div class="paw"><svg class="icon"><use xlink:href="#paw" /></svg></div>
     </div>
     <div class="loading-text">
-
-        Loading...
+        {$t('game.loading')}
     </div>
 </div>
 

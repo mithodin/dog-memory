@@ -1,5 +1,6 @@
 <script lang="ts">
     import {onDestroy, onMount} from "svelte";
+    import {t} from "svelte-i18n";
     import Card from "./Card.svelte";
     import {getGameStore, getStoreUpdate} from "../services/game";
     import type {GameStore} from "../services/game";
@@ -29,16 +30,16 @@
             if (gameState.state?.numSolved === gameState.state?.numPictures) {
                 const player1points = gameState.state.cards.filter(card => card.solvedBy === 0).length
                 const player2points = gameState.state.cards.filter(card => card.solvedBy === 1).length
-                let gameResult = 'it\'s a draw';
+                let gameResult = $t('game.over.draw');
                 if (player1points > player2points) {
-                    gameResult = 'player 1 won!';
+                    gameResult = $t('game.over.player1win');
                 } else if (player2points > player1points) {
-                    gameResult = 'player 2 won!';
+                    gameResult = $t('game.over.player2win');
                 }
                 modalStore.set({
-                    title: 'game over',
+                    title: $t('game.over.title'),
                     message: gameResult,
-                    button: 'close',
+                    button: $t('action.close'),
                     action: () => navigate('/')
                 });
             }
@@ -60,8 +61,8 @@
 <div class="game">
 {#if $state}
     <div class="players">
-        <div class="player player-one" class:active={$state.state.player === 0}>Player 1</div>
-        <div class="player player-two" class:active={$state.state.player === 1}>Player 2</div>
+        <div class="player player-one" class:active={$state.state.player === 0}>{$t('game.player1')}</div>
+        <div class="player player-two" class:active={$state.state.player === 1}>{$t('game.player2')}</div>
     </div>
     <div class="cards" style={`max-width: ${columns * 210}px`}>
         {#each $state.state.cards as card, index}
