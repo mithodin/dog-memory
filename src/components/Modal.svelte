@@ -33,7 +33,9 @@
     <div class="modal-container">
         <div class="window">
             <h2>{ $t($modalStore.title) }</h2>
+            {#if $modalStore.message }
             <p>{ $t($modalStore.message) }</p>
+            {/if}
             {#if $modalStore.input}
                 <input type="text" bind:value={userInput} maxlength="20" on:keyup={(event) => keyPress(event, $modalStore)} autofocus/>
             {/if}
@@ -64,5 +66,9 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
+    }
+
+    button {
+        margin-top: 10px;
     }
 </style>

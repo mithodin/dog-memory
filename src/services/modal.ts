@@ -2,7 +2,7 @@ import {writable} from "svelte/store";
 
 export interface ModalMessage {
     title: string;
-    message: string;
+    message?: string;
     button: string;
     action?: (input?: string) => void;
     input?: boolean;

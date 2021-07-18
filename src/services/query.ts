@@ -45,10 +45,10 @@ function queryChainImpl<T extends string>(queries: Array<QueryConfig<T>>, previo
 }
 
 export function getPlayerName(message: string, button: string): Observable<string> {
-    return queryPlayer(message, '', button);
+    return queryPlayer(message, null, button);
 }
 
-export function queryPlayer(title: string = '', message: string = '', button: string = '', inputValidation?: RegExp): Observable<string> {
+export function queryPlayer(title: string = '', message: string = null, button: string = '', inputValidation?: RegExp): Observable<string> {
     const result = new AsyncSubject<string>();
     modalStore.set({
         title,
