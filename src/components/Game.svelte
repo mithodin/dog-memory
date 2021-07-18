@@ -12,7 +12,7 @@
     import {
         boardSetup,
         cardClicked,
-        guestHello, hostHello,
+        guestHello, hostHello, ready,
         RemoteSessionClient,
         RemoteSessionHost
     } from "../services/remote-session";
@@ -22,6 +22,7 @@
     export let gameMode: GameMode = GameMode.LOCAL;
     export let numPictures: number = 2;
 
+    let playersReady = false;
     let isActive = () => true;
     let gameCode = '';
     let remoteSession: RemoteSession = null;
@@ -104,6 +105,8 @@
 
         const setup = await getGameStore(numPictures);
         state = setup.store;
+
+        playersReady = true;
     }
 
     async function setUpHostSession() {
@@ -127,13 +130,7 @@
             remoteSession.send(remoteSetup);
         });
 
-        unsubscribeRemote = remoteSession.remoteEvents.subscribe((event) => {
-            switch( event.type ){
-                case "CARD_CLICKED":
-                    cardSelected(event.card);
-                    break;
-            }
-        });
+        setUpRemoteCommon();
     }
 
     async function setUpJoinSession() {
@@ -168,6 +165,10 @@
         const setup = await getGameStore(numPictures, remoteBoard.cards);
         state = setup.store;
 
+        setUpRemoteCommon();
+    }
+
+    function setUpRemoteCommon(): void {
         unsubscribeRemote = remoteSession.remoteEvents.subscribe((event) => {
             switch( event.type ){
                 case "CARD_CLICKED":
@@ -175,12 +176,18 @@
                     break;
             }
         });
+
+        remoteSession.remoteEvents.pipe(
+            filter((event) => event.type === 'READY'),
+            take(1)
+        ).subscribe( () => {playersReady = true})
+        remoteSession.send(ready());
     }
 </script>
 <div class="game">
 {#if $state}
     <Players activePlayer={$state.state.player} playerNames={[player1Name, player2Name]} {gameCode}/>
-    <Board cards={$state.state.cards} on:cardSelected={(event) => userInput(event.detail)} active={!waitingToResolve && isActive()} {columns}/>
+    <Board cards={$state.state.cards} on:cardSelected={(event) => userInput(event.detail)} active={!waitingToResolve && isActive() && playersReady} {columns}/>
 {:else}
     <Loading />
 {/if}

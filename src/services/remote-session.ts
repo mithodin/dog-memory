@@ -1,13 +1,13 @@
 import {createArray} from "./utils";
 import type {Observable} from "rxjs";
-import {ReplaySubject, Subject} from "rxjs";
+import {ReplaySubject} from "rxjs";
 import Peer, {DataConnection} from "peerjs";
 
 interface GameEventCommon<T extends string> {
     type: T;
 }
 
-export type GameEvent = CardClickedEvent | BoardSetupEvent | GuestHelloEvent | HostHelloEvent;
+export type GameEvent = CardClickedEvent | BoardSetupEvent | GuestHelloEvent | HostHelloEvent | ReadyEvent;
 
 export interface CardClickedEvent extends GameEventCommon<'CARD_CLICKED'> {
     card: number;
@@ -56,6 +56,12 @@ export function hostHello(name: string): HostHelloEvent {
         type: 'HOST_HELLO',
         name
     };
+}
+
+export type ReadyEvent = GameEventCommon<'READY'>;
+
+export function ready(): ReadyEvent {
+    return { type: 'READY' };
 }
 
 export abstract class RemoteSession {
