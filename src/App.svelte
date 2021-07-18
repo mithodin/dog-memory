@@ -54,6 +54,7 @@
         justify-content: center;
         align-items: center;
         height: 100%;
+        flex-wrap: wrap;
     }
 
     .play {
@@ -61,6 +62,11 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        padding: 15px;
+    }
+
+    .play img {
+        max-height: 30vh;
     }
 
     .play .text {
