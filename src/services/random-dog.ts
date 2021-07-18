@@ -1,4 +1,5 @@
 import axios, {AxiosInstance} from "axios";
+import {createArray} from "./utils";
 
 export class DogApi {
     private readonly api: AxiosInstance;
@@ -14,7 +15,7 @@ export class DogApi {
     }
 
     public getDogs(howMany: number): Promise<Array<string>> {
-        return Promise.all(new Array(howMany).fill(0).map(() => this.getDogURL().then( url => this.downloadDog(url))));
+        return Promise.all(createArray(howMany, () => this.getDogURL().then( url => this.downloadDog(url))));
     }
 
     private downloadDog(url: string): Promise<string> {

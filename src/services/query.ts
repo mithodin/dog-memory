@@ -18,7 +18,7 @@ export function getPlayerNames(player1Message: string, player2Message: string, b
     return nameResult.asObservable();
 }
 
-function getPlayerName(message: string, button: string): Observable<string> {
+export function getPlayerName(message: string, button: string): Observable<string> {
     const nameResult = new AsyncSubject<string>();
     modalStore.set({
         title: message,
