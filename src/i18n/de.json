@@ -1,8 +1,10 @@
 {
   "action":{
-    "play": "spielen",
+    "play": "lokales Spiel",
     "close": "schließen",
-    "okay": "ok"
+    "okay": "ok",
+    "join": "Spiel betreten",
+    "host": "Spiel öffnen"
   },
   "query": {
     "player1Name": "Name von Spieler*in 1",

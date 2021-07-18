@@ -1,34 +1,63 @@
 import type { Observable } from "rxjs";
-import {AsyncSubject} from "rxjs";
+import {AsyncSubject, of, switchMap} from "rxjs";
 import {modalStore} from "./modal";
 
+export interface QueryConfig<T extends string> {
+    id: T;
+    title?: string;
+    message?: string;
+    button?: string;
+}
+
 export interface PlayerNames {
-    player1Name: string,
-    player2Name: string
+    player1Name: string;
+    player2Name: string;
 }
 
 export function getPlayerNames(player1Message: string, player2Message: string, button: string): Observable<PlayerNames> {
-    const nameResult = new AsyncSubject<PlayerNames>();
-    getPlayerName(player1Message, button).subscribe( player1Name => {
-        getPlayerName(player2Message, button).subscribe( player2Name => {
-            nameResult.next({ player1Name, player2Name });
-            nameResult.complete();
-        });
-    });
-    return nameResult.asObservable();
+    return queryChain([
+        {
+            id: 'player1Name',
+            title: player1Message,
+            button
+        },
+        {
+            id: 'player2Name',
+            title: player2Message,
+            button
+        }
+    ]);
+}
+
+export function queryChain<T extends string>(queries: Array<QueryConfig<T>>): Observable<Record<T,string>> {
+    return queryChainImpl<T>(queries, {});
+}
+
+function queryChainImpl<T extends string>(queries: Array<QueryConfig<T>>, previousResults: Partial<Record<T, string>>): Observable<Record<T, string>> {
+    if( queries.length === 0){
+        return of(previousResults as Record<T, string>);
+    }
+    const [query, ...rest] = queries;
+    return queryPlayer(query.title, query.message, query.button).pipe(
+        switchMap(result => queryChainImpl<T>(rest, {...previousResults, [query.id]: result}))
+    );
 }
 
 export function getPlayerName(message: string, button: string): Observable<string> {
-    const nameResult = new AsyncSubject<string>();
+    return queryPlayer(message, '', button);
+}
+
+export function queryPlayer(title: string = '', message: string = '', button: string = ''): Observable<string> {
+    const result = new AsyncSubject<string>();
     modalStore.set({
-        title: message,
+        title,
         button,
-        message: '',
+        message,
         input: true,
         action: (name) => {
-            nameResult.next(name);
-            nameResult.complete();
+            result.next(name);
+            result.complete();
         }
     });
-    return nameResult.asObservable();
+    return result.asObservable();
 }

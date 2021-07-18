@@ -4,6 +4,7 @@
     import {isLoading} from "svelte-i18n";
     import Game from "./components/Game.svelte";
     import Modal from "./components/Modal.svelte";
+    import {GameMode} from "./services/game";
 
     export let url = "";
 
@@ -13,7 +14,13 @@
 {#if !$isLoading}
     <Router url={url}>
         <Route path="play">
-            <Game numPictures={6}/>
+            <Game numPictures={6} gameMode={GameMode.LOCAL}/>
+        </Route>
+        <Route path="join">
+            <Game numPictures={6} gameMode={GameMode.JOIN}/>
+        </Route>
+        <Route path="host">
+            <Game numPictures={6} gameMode={GameMode.HOST}/>
         </Route>
         <Route path="/">
             <nav>
@@ -21,6 +28,18 @@
                     <div class="play">
                         <img src={playIcon} alt={$t('action.play')}/>
                         <span class="text">{$t('action.play')}</span>
+                    </div>
+                </Link>
+                <Link to="join">
+                    <div class="play">
+                        <img src={playIcon} alt={$t('action.join')}/>
+                        <span class="text">{$t('action.join')}</span>
+                    </div>
+                </Link>
+                <Link to="host">
+                    <div class="play">
+                        <img src={playIcon} alt={$t('action.host')}/>
+                        <span class="text">{$t('action.host')}</span>
                     </div>
                 </Link>
             </nav>
@@ -48,5 +67,6 @@
         font-size: 50px;
         font-weight: bold;
         color: #d31145;
+        text-align: center;
     }
 </style>

@@ -1,9 +1,11 @@
 <script lang="ts">
     export let activePlayer: number = 0;
     export let playerNames: Array<string>;
+    export let gameCode: string;
 </script>
 
 <div class="players">
+    { gameCode }
     {#each playerNames as player, index}
         <div class={`player player-${index}`} class:active={activePlayer === index}>{player}</div>
     {/each}

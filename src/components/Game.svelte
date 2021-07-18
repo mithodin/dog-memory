@@ -6,28 +6,48 @@
     import {navigate} from "svelte-routing";
     import {modalStore} from "../services/modal";
     import Loading from "./Loading.svelte";
-    import {getPlayerNames} from "../services/query";
+    import {getPlayerName, getPlayerNames, queryChain} from "../services/query";
     import Board from "./Board.svelte";
     import Players from "./Players.svelte";
+    import {
+        boardSetup,
+        cardClicked,
+        guestHello, hostHello,
+        RemoteSessionClient,
+        RemoteSessionHost
+    } from "../services/remote-session";
+    import type { HostHelloEvent, GuestHelloEvent, BoardSetupEvent, RemoteSession, CardClickedEvent } from "../services/remote-session";
+    import {filter, firstValueFrom, take} from "rxjs";
 
     export let gameMode: GameMode = GameMode.LOCAL;
     export let numPictures: number = 2;
 
+    let isActive = () => true;
+    let gameCode = '';
+    let remoteSession: RemoteSession = null;
     let state: GameStore;
     let unsubscribeState;
+    let unsubscribeRemote;
     let waitingToResolve = false;
     let columns = 2;
     let player1Name = $t('game.player1');
     let player2Name = $t('game.player2');
 
     onMount(async () => {
-        getPlayerNames($t('query.player1Name'), $t('query.player2Name'), $t('action.okay')).subscribe(names => {
-            player1Name = names.player1Name;
-            player2Name = names.player2Name;
-        });
-
         columns = Math.ceil(Math.sqrt(2 * numPictures));
-        state = await getGameStore(numPictures);
+
+        switch( gameMode ){
+            case GameMode.LOCAL:
+                await setUpLocalSession();
+                break;
+            case GameMode.JOIN:
+                await setUpJoinSession();
+                break;
+            case GameMode.HOST:
+                await setUpHostSession();
+                break;
+        }
+
         unsubscribeState = state.subscribe(gameState => {
             if (gameState.state?.revealed?.length === 2) {
                 waitingToResolve = true;
@@ -59,16 +79,107 @@
         if (unsubscribeState) {
             unsubscribeState();
         }
+        if( unsubscribeRemote) {
+            unsubscribeRemote.unsubscribe();
+            remoteSession.close();
+        }
     });
+
+    function userInput(index: number) {
+        if( remoteSession ){
+            remoteSession.send(cardClicked(index));
+        }
+        cardSelected(index);
+    }
 
     function cardSelected(index: number) {
         state.update(getStoreUpdate(index))
     }
+
+    async function setUpLocalSession() {
+        getPlayerNames($t('query.player1Name'), $t('query.player2Name'), $t('action.okay')).subscribe(names => {
+            player1Name = names.player1Name;
+            player2Name = names.player2Name;
+        });
+
+        const setup = await getGameStore(numPictures);
+        state = setup.store;
+    }
+
+    async function setUpHostSession() {
+        isActive = () => $state.state.player === 0;
+        gameCode = RemoteSessionHost.getEmojiCode();
+        remoteSession = new RemoteSessionHost(gameCode);
+        getPlayerName($t('query.player1Name'), $t('action.okay')).subscribe( name => {
+            player1Name = name;
+        });
+
+        const setup = await getGameStore(numPictures);
+        const remoteSetup = boardSetup(setup.board);
+        state = setup.store;
+
+        remoteSession.remoteEvents.pipe(
+            filter<GuestHelloEvent>((event) => event.type === 'GUEST_HELLO'),
+            take(1)
+        ).subscribe((event) => {
+            player2Name = event.name;
+            remoteSession.send(hostHello(player1Name));
+            remoteSession.send(remoteSetup);
+        });
+
+        unsubscribeRemote = remoteSession.remoteEvents.subscribe((event) => {
+            switch( event.type ){
+                case "CARD_CLICKED":
+                    cardSelected(event.card);
+                    break;
+            }
+        });
+    }
+
+    async function setUpJoinSession() {
+        isActive = () => $state.state.player === 1;
+        const { player2NameR, gameCodeR } = await firstValueFrom(queryChain([
+            {
+                id: 'player2NameR',
+                title: 'what is your name?',
+                button: 'ok'
+            },
+            {
+                id: 'gameCodeR',
+                title: 'what is your game code?',
+                button: 'ok'
+            }
+        ]));
+        player2Name = player2NameR;
+        gameCode = gameCodeR;
+
+        remoteSession = new RemoteSessionClient(gameCode);
+        remoteSession.send(guestHello(player2Name));
+        remoteSession.remoteEvents.pipe(
+            filter<HostHelloEvent>((event) => event.type === 'HOST_HELLO'),
+            take(1)
+        ).subscribe( event => {
+            player1Name = event.name;
+        });
+        const remoteBoard = await firstValueFrom(remoteSession.remoteEvents.pipe(
+            filter<BoardSetupEvent>( event => event.type === "BOARD_SETUP" )
+        ));
+        const setup = await getGameStore(numPictures, remoteBoard.cards);
+        state = setup.store;
+
+        unsubscribeRemote = remoteSession.remoteEvents.subscribe((event) => {
+            switch( event.type ){
+                case "CARD_CLICKED":
+                    cardSelected(event.card);
+                    break;
+            }
+        });
+    }
 </script>
 <div class="game">
 {#if $state}
-    <Players activePlayer={$state.state.player} playerNames={[player1Name, player2Name]} />
-    <Board cards={$state.state.cards} on:cardSelected={(event) => cardSelected(event.detail)} active={!waitingToResolve} {columns}/>
+    <Players activePlayer={$state.state.player} playerNames={[player1Name, player2Name]} {gameCode}/>
+    <Board cards={$state.state.cards} on:cardSelected={(event) => userInput(event.detail)} active={!waitingToResolve && isActive()} {columns}/>
 {:else}
     <Loading />
 {/if}

@@ -15,10 +15,10 @@ export class DogApi {
     }
 
     public getDogs(howMany: number): Promise<Array<string>> {
-        return Promise.all(createArray(howMany, () => this.getDogURL().then( url => this.downloadDog(url))));
+        return Promise.all(createArray(howMany, () => this.getDogURL()));
     }
 
-    private downloadDog(url: string): Promise<string> {
+    public downloadDog(url: string): Promise<string> {
         return this.api.get(url, { responseType: 'blob'}).then( imgBlob => URL.createObjectURL(imgBlob.data))
     }
 }

@@ -1,7 +1,14 @@
 {
   "action":{
-    "play": "play",
-    "close": "close"
+    "play": "play locally",
+    "close": "close",
+    "okay": "ok",
+    "join": "join game",
+    "host": "host game"
+  },
+  "query": {
+    "player1Name": "first player's name",
+    "player2Name": "second player's name"
   },
   "img": {
     "frontside": {

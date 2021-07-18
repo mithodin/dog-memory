@@ -1,6 +1,8 @@
 import {Updater, Writable, writable} from "svelte/store";
 import {DogApi} from "./random-dog";
 import {shuffleArray} from "./shuffle";
+import type {CardLocation} from "./remote-session";
+import {range} from "./utils";
 
 export enum GameMode {
     LOCAL,
@@ -96,23 +98,38 @@ class TwoCardsFlipped implements GameStateHandler<GameState, void> {
 
 export type MemoryGameStateHandler = GameStateHandler<GameState, number | void>;
 export type GameStore = Writable<MemoryGameStateHandler>
+export type GameSetup = {
+    store: GameStore;
+    board: Array<CardLocation>;
+}
 
 const dogApiURL = 'https://random.dog/';
-export async function getGameStore(numPictures: number): Promise<GameStore> {
+export async function getGameStore(numPictures: number, boardSetup?: Array<CardLocation>): Promise<GameSetup> {
     const dogApi = new DogApi(dogApiURL);
-    const pictureURLs = await dogApi.getDogs(numPictures);
+    let cards: Array<CardConfig> = [];
+    if( !boardSetup ){
+        const pictureURLs = await dogApi.getDogs(numPictures);
+        const indices = shuffleArray(range(2*numPictures));
+        boardSetup = pictureURLs.map( url => ({ url, indices: [indices.pop(),indices.pop()] }));
+    }
+    cards = new Array(2*numPictures).fill(null);
+    await Promise.all(boardSetup.map( picture => dogApi.downloadDog(picture.url).then( localURL => {
+        picture.indices.forEach( index => {
+            cards[index] = {
+                state: CardState.HIDDEN,
+                pictureURL: localURL
+            }
+        });
+    })))
     const initialState: GameState = {
         players: 2,
         player: 0,
         numSolved: 0,
         numPictures,
         revealed: [],
-        cards: shuffleArray(new Array(2*numPictures).fill(0).map((_,i) => ({
-            state: CardState.HIDDEN,
-            pictureURL: pictureURLs[i%pictureURLs.length]
-        })))
+        cards
     };
-    return writable(new NoCardFlipped(initialState));
+    return { store: writable(new NoCardFlipped(initialState)), board: boardSetup };
 }
 
 export function getStoreUpdate(ev: number | void): Updater<MemoryGameStateHandler> {

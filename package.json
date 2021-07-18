@@ -18,6 +18,7 @@
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/svelte": "^3.0.3",
     "@tsconfig/svelte": "^2.0.0",
+    "@types/crypto-js": "^4.0.2",
     "@types/jest": "^26.0.24",
     "@types/streamx": "^2.9.1",
     "jest": "^27.0.6",
@@ -37,7 +38,8 @@
   },
   "dependencies": {
     "axios": "^0.21.1",
-    "hyperbeam": "^1.1.3",
+    "crypto-js": "^4.0.0",
+    "peerjs": "^1.3.2",
     "rxjs": "^7.2.0",
     "sirv-cli": "^1.0.0",
     "svelte-i18n": "^3.3.9",

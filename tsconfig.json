@@ -5,7 +5,6 @@
   "compilerOptions": {
     "types": ["jest"],
     "module": "ESNext",
-    "resolveJsonModule": true,
-    "typeRoots": ["src/@types", "node_modules/@types"]
+    "resolveJsonModule": true
   }
 }
