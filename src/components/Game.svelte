@@ -1,14 +1,16 @@
 <script lang="ts">
     import {onDestroy, onMount} from "svelte";
     import {t} from "svelte-i18n";
-    import {getGameStore, getStoreUpdate} from "../services/game";
     import type {GameStore} from "../services/game";
+    import {GameMode, getGameStore, getStoreUpdate} from "../services/game";
     import {navigate} from "svelte-routing";
     import {modalStore} from "../services/modal";
     import Loading from "./Loading.svelte";
     import {getPlayerNames} from "../services/query";
     import Board from "./Board.svelte";
+    import Players from "./Players.svelte";
 
+    export let gameMode: GameMode = GameMode.LOCAL;
     export let numPictures: number = 2;
 
     let state: GameStore;
@@ -65,10 +67,7 @@
 </script>
 <div class="game">
 {#if $state}
-    <div class="players">
-        <div class="player player-one" class:active={$state.state.player === 0}>{player1Name}</div>
-        <div class="player player-two" class:active={$state.state.player === 1}>{player2Name}</div>
-    </div>
+    <Players activePlayer={$state.state.player} playerNames={[player1Name, player2Name]} />
     <Board cards={$state.state.cards} on:cardSelected={(event) => cardSelected(event.detail)} active={!waitingToResolve} {columns}/>
 {:else}
     <Loading />
@@ -80,30 +79,5 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-    }
-
-    .players {
-        display: flex;
-        justify-content: center;
-        align-items: baseline;
-        vertical-align: baseline;
-    }
-
-    .player {
-        padding: 5px;
-        vertical-align: baseline;
-    }
-
-    .active {
-        font-size: 150%;
-        font-weight: bold;
-    }
-
-    .player-one {
-        color: rgb(255,0,0);
-    }
-
-    .player-two {
-        color: rgb(0,0,255);
     }
 </style>

@@ -2,6 +2,12 @@ import {Updater, Writable, writable} from "svelte/store";
 import {DogApi} from "./random-dog";
 import {shuffleArray} from "./shuffle";
 
+export enum GameMode {
+    LOCAL,
+    HOST,
+    JOIN
+}
+
 export interface CardConfig {
     readonly pictureURL: string;
     readonly state: CardState;
