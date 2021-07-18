@@ -2,11 +2,15 @@
     import {modalStore} from "../services/modal";
     import type { ModalMessage } from "../services/modal";
 
+    let userInput;
+
     function closeModal(message: ModalMessage): void {
-        if( message.action ){
-            message.action();
-        }
         modalStore.set(null);
+        const input = userInput;
+        userInput = undefined;
+        if( message.action ){
+            message.action(input);
+        }
     }
 </script>
 
@@ -15,6 +19,9 @@
         <div class="window">
             <h2>{ $modalStore.title }</h2>
             <p>{ $modalStore.message }</p>
+            {#if $modalStore.input}
+                <input type="text" bind:value={userInput} />
+            {/if}
             <button on:click={() => closeModal($modalStore)}>{ $modalStore.button }</button>
         </div>
     </div>

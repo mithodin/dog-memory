@@ -1,22 +1,29 @@
 <script lang="ts">
     import {onDestroy, onMount} from "svelte";
     import {t} from "svelte-i18n";
-    import Card from "./Card.svelte";
     import {getGameStore, getStoreUpdate} from "../services/game";
     import type {GameStore} from "../services/game";
     import {navigate} from "svelte-routing";
     import {modalStore} from "../services/modal";
     import Loading from "./Loading.svelte";
+    import {getPlayerNames} from "../services/query";
+    import Board from "./Board.svelte";
 
     export let numPictures: number = 2;
 
-    const backside = '/assets/backside.jpg';
     let state: GameStore;
     let unsubscribeState;
     let waitingToResolve = false;
     let columns = 2;
+    let player1Name = $t('game.player1');
+    let player2Name = $t('game.player2');
 
     onMount(async () => {
+        getPlayerNames($t('query.player1Name'), $t('query.player2Name'), $t('action.okay')).subscribe(names => {
+            player1Name = names.player1Name;
+            player2Name = names.player2Name;
+        });
+
         columns = Math.ceil(Math.sqrt(2 * numPictures));
         state = await getGameStore(numPictures);
         unsubscribeState = state.subscribe(gameState => {
@@ -32,9 +39,9 @@
                 const player2points = gameState.state.cards.filter(card => card.solvedBy === 1).length
                 let gameResult = $t('game.over.draw');
                 if (player1points > player2points) {
-                    gameResult = $t('game.over.player1win');
+                    gameResult = $t('game.over.player1win', {values: {player1Name}});
                 } else if (player2points > player1points) {
-                    gameResult = $t('game.over.player2win');
+                    gameResult = $t('game.over.player2win', {values: {player2Name}});
                 }
                 modalStore.set({
                     title: $t('game.over.title'),
@@ -52,23 +59,17 @@
         }
     });
 
-    function handleEvent(ev: number) {
-        if (!waitingToResolve) {
-            state.update(getStoreUpdate(ev))
-        }
+    function cardSelected(index: number) {
+        state.update(getStoreUpdate(index))
     }
 </script>
 <div class="game">
 {#if $state}
     <div class="players">
-        <div class="player player-one" class:active={$state.state.player === 0}>{$t('game.player1')}</div>
-        <div class="player player-two" class:active={$state.state.player === 1}>{$t('game.player2')}</div>
+        <div class="player player-one" class:active={$state.state.player === 0}>{player1Name}</div>
+        <div class="player player-two" class:active={$state.state.player === 1}>{player2Name}</div>
     </div>
-    <div class="cards" style={`max-width: ${columns * 210}px`}>
-        {#each $state.state.cards as card, index}
-            <Card {backside} cardConfig={card} on:mouseup={() => handleEvent(index)} />
-        {/each}
-    </div>
+    <Board cards={$state.state.cards} on:cardSelected={(event) => cardSelected(event.detail)} active={!waitingToResolve} {columns}/>
 {:else}
     <Loading />
 {/if}
@@ -104,11 +105,5 @@
 
     .player-two {
         color: rgb(0,0,255);
-    }
-
-    .cards {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
     }
 </style>

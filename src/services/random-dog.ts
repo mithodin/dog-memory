@@ -10,7 +10,7 @@ export class DogApi {
     }
 
     public getDogURL(): Promise<string> {
-        return this.api.get('/woof?include=jpg').then( response => `${this.baseURL}${response.data}`);
+        return this.api.get('/woof?filter=webm,mp4').then( response => `${this.baseURL}${response.data}`);
     }
 
     public getDogs(howMany: number): Promise<Array<string>> {

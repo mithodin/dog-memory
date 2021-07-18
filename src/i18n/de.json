@@ -1,7 +1,12 @@
 {
   "action":{
     "play": "spielen",
-    "close": "schließen"
+    "close": "schließen",
+    "okay": "ok"
+  },
+  "query": {
+    "player1Name": "Name von Spieler*in 1",
+    "player2Name": "Name von Spieler*in 2"
   },
   "img": {
     "frontside": {
@@ -18,8 +23,8 @@
     "over": {
       "title": "Spiel beendet",
       "draw": "Unentschieden.",
-      "player1win": "Spieler*in 1 hat gewonnen!",
-      "player2win": "Spieler*in 2 hat gewonnen!"
+      "player1win": "{player1Name} hat gewonnen!",
+      "player2win": "{player2Name} hat gewonnen!"
     }
   }
 }

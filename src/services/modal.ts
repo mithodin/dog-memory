@@ -4,7 +4,8 @@ export interface ModalMessage {
     title: string;
     message: string;
     button: string;
-    action?: () => void;
+    action?: (input?: string) => void;
+    input?: boolean;
 }
 
 export const modalStore = writable<ModalMessage>(null);
