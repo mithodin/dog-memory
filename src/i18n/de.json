@@ -4,13 +4,15 @@
     "close": "schließen",
     "okay": "ok",
     "join": "Spiel betreten",
-    "host": "Spiel öffnen"
+    "host": "Spiel öffnen",
+    "ready": "auf geht's"
   },
   "query": {
     "player1Name": "Name von Spieler*in 1",
     "player2Name": "Name von Spieler*in 2",
     "yourName": "Wie heißt du?",
-    "gameCode": "Gib einen Spielcode ein"
+    "gameCode": "Gib einen Spielcode ein",
+    "ready": "Bereit?"
   },
   "img": {
     "frontside": {
@@ -21,6 +23,7 @@
     }
   },
   "game": {
+    "code": "Spielcode",
     "loading": "Lade Bilder...",
     "player1": "Spieler*in 1",
     "player2": "Spieler*in 2",

@@ -1,22 +1,43 @@
 <script lang="ts">
+    import {t} from "svelte-i18n";
     export let activePlayer: number = 0;
     export let playerNames: Array<string>;
-    export let gameCode: string;
+    export let gameCode: string = null;
 </script>
 
-<div class="players">
-    { gameCode }
-    {#each playerNames as player, index}
-        <div class={`player player-${index}`} class:active={activePlayer === index}>{player}</div>
-    {/each}
+<div class="menu">
+    {#if gameCode}
+        <div class="game-code">
+            { $t('game.code') } { gameCode }
+        </div>
+    {/if}
+    <div class="players">
+        {#each playerNames as player, index}
+            <div class={`player player-${index}`} class:active={activePlayer === index}>{player}</div>
+        {/each}
+    </div>
 </div>
 
 <style>
-    .players {
+    .menu {
+        width: 100%;
         display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .game-code {
+        flex-grow: 0;
+        font-size: 150%;
+    }
+
+    .players {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: row;
         justify-content: center;
         align-items: baseline;
-        vertical-align: baseline;
     }
 
     .player {

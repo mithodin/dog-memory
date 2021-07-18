@@ -17,14 +17,14 @@
         RemoteSessionHost
     } from "../services/remote-session";
     import type { HostHelloEvent, GuestHelloEvent, BoardSetupEvent, RemoteSession } from "../services/remote-session";
-    import {filter, firstValueFrom, take} from "rxjs";
+    import {filter, firstValueFrom, forkJoin, take, tap} from "rxjs";
 
     export let gameMode: GameMode = GameMode.LOCAL;
     export let numPictures: number = 2;
 
     let playersReady = false;
     let isActive = () => true;
-    let gameCode = '';
+    let gameCode: string = null;
     let remoteSession: RemoteSession = null;
     let state: GameStore;
     let unsubscribeState;
@@ -113,22 +113,25 @@
         isActive = () => $state.state.player === 0;
         gameCode = RemoteSessionHost.getEmojiCode();
         remoteSession = new RemoteSessionHost(gameCode);
-        getPlayerName('query.player1Name', 'action.okay').subscribe( name => {
-            player1Name = name;
-        });
+        const playerName$ = getPlayerName('query.yourName', 'action.okay').pipe(
+            tap( name => {
+                player1Name = name;
+            })
+        );
 
         const setup = await getGameStore(numPictures);
         const remoteSetup = boardSetup(setup.board);
         state = setup.store;
 
-        remoteSession.remoteEvents.pipe(
+        const [event,playerName] = await firstValueFrom(forkJoin<[GuestHelloEvent,string]>(remoteSession.remoteEvents.pipe(
             filter<GuestHelloEvent>((event) => event.type === 'GUEST_HELLO'),
             take(1)
-        ).subscribe((event) => {
-            player2Name = event.name;
-            remoteSession.send(hostHello(player1Name));
-            remoteSession.send(remoteSetup);
-        });
+            ),
+            playerName$
+        ));
+        player2Name = event.name;
+        remoteSession.send(hostHello(playerName));
+        remoteSession.send(remoteSetup);
 
         setUpRemoteCommon();
     }
@@ -180,8 +183,14 @@
         remoteSession.remoteEvents.pipe(
             filter((event) => event.type === 'READY'),
             take(1)
-        ).subscribe( () => {playersReady = true})
-        remoteSession.send(ready());
+        ).subscribe( () => { playersReady = true })
+
+        modalStore.set({
+            button: 'action.ready',
+            message: '',
+            title: 'query.ready',
+            action: () => remoteSession.send(ready())
+        });
     }
 </script>
 <div class="game">
