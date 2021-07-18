@@ -1,10 +1,25 @@
 <script lang="ts">
+    import {t} from "svelte-i18n";
     import {modalStore} from "../services/modal";
     import type { ModalMessage } from "../services/modal";
 
     let userInput;
 
+    function keyPress(event: KeyboardEvent, message: ModalMessage): void {
+        if( event.key === 'Enter' ){
+            closeModal(message);
+        }
+    }
+
     function closeModal(message: ModalMessage): void {
+        if( message.input ){
+            if( !userInput ){
+                return;
+            }
+            if( message.inputValidation && !userInput.match(message.inputValidation)){
+                return;
+            }
+        }
         modalStore.set(null);
         const input = userInput;
         userInput = undefined;
@@ -17,12 +32,12 @@
 {#if $modalStore}
     <div class="modal-container">
         <div class="window">
-            <h2>{ $modalStore.title }</h2>
-            <p>{ $modalStore.message }</p>
+            <h2>{ $t($modalStore.title) }</h2>
+            <p>{ $t($modalStore.message) }</p>
             {#if $modalStore.input}
-                <input type="text" bind:value={userInput} />
+                <input type="text" bind:value={userInput} maxlength="20" on:keyup={(event) => keyPress(event, $modalStore)} autofocus/>
             {/if}
-            <button on:click={() => closeModal($modalStore)}>{ $modalStore.button }</button>
+            <button on:click={() => closeModal($modalStore)}>{ $t($modalStore.button) }</button>
         </div>
     </div>
 {/if}

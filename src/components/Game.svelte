@@ -16,7 +16,7 @@
         RemoteSessionClient,
         RemoteSessionHost
     } from "../services/remote-session";
-    import type { HostHelloEvent, GuestHelloEvent, BoardSetupEvent, RemoteSession, CardClickedEvent } from "../services/remote-session";
+    import type { HostHelloEvent, GuestHelloEvent, BoardSetupEvent, RemoteSession } from "../services/remote-session";
     import {filter, firstValueFrom, take} from "rxjs";
 
     export let gameMode: GameMode = GameMode.LOCAL;
@@ -97,7 +97,7 @@
     }
 
     async function setUpLocalSession() {
-        getPlayerNames($t('query.player1Name'), $t('query.player2Name'), $t('action.okay')).subscribe(names => {
+        getPlayerNames('query.player1Name', 'query.player2Name', 'action.okay').subscribe(names => {
             player1Name = names.player1Name;
             player2Name = names.player2Name;
         });
@@ -110,7 +110,7 @@
         isActive = () => $state.state.player === 0;
         gameCode = RemoteSessionHost.getEmojiCode();
         remoteSession = new RemoteSessionHost(gameCode);
-        getPlayerName($t('query.player1Name'), $t('action.okay')).subscribe( name => {
+        getPlayerName('query.player1Name', 'action.okay').subscribe( name => {
             player1Name = name;
         });
 
@@ -141,13 +141,14 @@
         const { player2NameR, gameCodeR } = await firstValueFrom(queryChain([
             {
                 id: 'player2NameR',
-                title: 'what is your name?',
-                button: 'ok'
+                title: 'query.yourName',
+                button: 'action.okay'
             },
             {
                 id: 'gameCodeR',
-                title: 'what is your game code?',
-                button: 'ok'
+                title: 'query.gameCode',
+                button: 'action.okay',
+                inputValidation: /^[\u{1F400}-\u{1F42C}]{4}$/u
             }
         ]));
         player2Name = player2NameR;

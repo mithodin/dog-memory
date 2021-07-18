@@ -7,6 +7,7 @@ export interface QueryConfig<T extends string> {
     title?: string;
     message?: string;
     button?: string;
+    inputValidation?: RegExp;
 }
 
 export interface PlayerNames {
@@ -38,7 +39,7 @@ function queryChainImpl<T extends string>(queries: Array<QueryConfig<T>>, previo
         return of(previousResults as Record<T, string>);
     }
     const [query, ...rest] = queries;
-    return queryPlayer(query.title, query.message, query.button).pipe(
+    return queryPlayer(query.title, query.message, query.button, query.inputValidation).pipe(
         switchMap(result => queryChainImpl<T>(rest, {...previousResults, [query.id]: result}))
     );
 }
@@ -47,13 +48,14 @@ export function getPlayerName(message: string, button: string): Observable<strin
     return queryPlayer(message, '', button);
 }
 
-export function queryPlayer(title: string = '', message: string = '', button: string = ''): Observable<string> {
+export function queryPlayer(title: string = '', message: string = '', button: string = '', inputValidation?: RegExp): Observable<string> {
     const result = new AsyncSubject<string>();
     modalStore.set({
         title,
         button,
         message,
         input: true,
+        inputValidation,
         action: (name) => {
             result.next(name);
             result.complete();

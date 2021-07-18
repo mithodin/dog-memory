@@ -8,7 +8,9 @@
   },
   "query": {
     "player1Name": "Name von Spieler*in 1",
-    "player2Name": "Name von Spieler*in 2"
+    "player2Name": "Name von Spieler*in 2",
+    "yourName": "Wie heißt du?",
+    "gameCode": "Gib einen Spielcode ein"
   },
   "img": {
     "frontside": {
