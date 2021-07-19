@@ -9,6 +9,8 @@
     export let url = "";
 
     const playIcon = '/assets/dog.svg';
+    const hostIcon = '/assets/dog-host.svg';
+    const joinIcon = '/assets/dog-join.svg';
 </script>
 
 {#if !$isLoading}
@@ -32,13 +34,13 @@
                 </Link>
                 <Link to="join">
                     <div class="play">
-                        <img src={playIcon} alt={$t('action.join')}/>
+                        <img src={joinIcon} alt={$t('action.join')}/>
                         <span class="text">{$t('action.join')}</span>
                     </div>
                 </Link>
                 <Link to="host">
                     <div class="play">
-                        <img src={playIcon} alt={$t('action.host')}/>
+                        <img src={hostIcon} alt={$t('action.host')}/>
                         <span class="text">{$t('action.host')}</span>
                     </div>
                 </Link>
@@ -63,6 +65,12 @@
         justify-content: center;
         align-items: center;
         padding: 15px;
+        cursor: pointer;
+    }
+
+    .play:hover {
+        background-color: #d31145;
+        border-radius: 20px;
     }
 
     .play img {
@@ -74,5 +82,9 @@
         font-weight: bold;
         color: #d31145;
         text-align: center;
+    }
+
+    .play:hover .text {
+        color: #fff;
     }
 </style>
