@@ -1,13 +1,13 @@
-import {Updater, Writable, writable} from "svelte/store";
-import {DogApi} from "./random-dog";
-import {shuffleArray} from "./shuffle";
-import type {CardLocation} from "./remote-session";
-import {range} from "./utils";
+import { Updater, Writable, writable } from 'svelte/store';
+import { DogApi } from './random-dog';
+import { shuffleArray } from './shuffle';
+import type { CardLocation } from './remote-session';
+import { range } from './utils';
 
 export enum GameMode {
     LOCAL,
     HOST,
-    JOIN
+    JOIN,
 }
 
 export interface CardConfig {
@@ -19,7 +19,7 @@ export interface CardConfig {
 export enum CardState {
     HIDDEN,
     REVEALED,
-    SOLVED
+    SOLVED,
 }
 
 export interface GameState {
@@ -28,26 +28,28 @@ export interface GameState {
     readonly player: number;
     readonly numSolved: number;
     readonly numPictures: number;
-    readonly cards: ReadonlyArray<CardConfig>
+    readonly cards: ReadonlyArray<CardConfig>;
 }
 
-interface GameStateHandler<STATE,EVENT> {
-    readonly state: STATE,
-    rules: (ev: EVENT) => GameStateHandler<STATE, any>,
+interface GameStateHandler<STATE, EVENT> {
+    readonly state: STATE;
+    rules: (ev: EVENT) => GameStateHandler<STATE, any>;
 }
 
 class NoCardFlipped implements GameStateHandler<GameState, number> {
-    constructor(
-        public readonly state: GameState
-    ) {}
+    constructor(public readonly state: GameState) {}
 
     rules(ev: number): GameStateHandler<GameState, number> {
-        switch( this.state.cards[ev].state ){
+        switch (this.state.cards[ev].state) {
             case CardState.HIDDEN:
                 return new OneCardFlipped({
                     ...this.state,
                     revealed: [ev],
-                    cards: this.state.cards.map((card, index) => index === ev ? {...card, state: CardState.REVEALED} : card)
+                    cards: this.state.cards.map((card, index) =>
+                        index === ev
+                            ? { ...card, state: CardState.REVEALED }
+                            : card
+                    ),
                 });
             default:
                 return this;
@@ -55,14 +57,21 @@ class NoCardFlipped implements GameStateHandler<GameState, number> {
     }
 }
 
-class OneCardFlipped extends NoCardFlipped implements GameStateHandler<GameState, number> {
+class OneCardFlipped
+    extends NoCardFlipped
+    implements GameStateHandler<GameState, number>
+{
     rules(ev: number): GameStateHandler<GameState, number | void> {
-        switch( this.state.cards[ev].state ){
+        switch (this.state.cards[ev].state) {
             case CardState.HIDDEN:
                 return new TwoCardsFlipped({
                     ...this.state,
                     revealed: [...this.state.revealed, ev],
-                    cards: this.state.cards.map((card, index) => index === ev ? {...card, state: CardState.REVEALED} : card)
+                    cards: this.state.cards.map((card, index) =>
+                        index === ev
+                            ? { ...card, state: CardState.REVEALED }
+                            : card
+                    ),
                 });
             default:
                 return this;
@@ -71,67 +80,92 @@ class OneCardFlipped extends NoCardFlipped implements GameStateHandler<GameState
 }
 
 class TwoCardsFlipped implements GameStateHandler<GameState, void> {
-    constructor(
-        public readonly state: GameState
-    ) {}
+    constructor(public readonly state: GameState) {}
 
     rules(_: void): GameStateHandler<GameState, number> {
         const card1 = this.state.cards[this.state.revealed[0]];
         const card2 = this.state.cards[this.state.revealed[1]];
-        if( card1?.pictureURL === card2?.pictureURL ){
+        if (card1?.pictureURL === card2?.pictureURL) {
             return new NoCardFlipped({
                 ...this.state,
                 numSolved: this.state.numSolved + 1,
                 revealed: [],
-                cards: this.state.cards.map( (card, index) => this.state.revealed.includes(index) ? {...card, state: CardState.SOLVED, solvedBy: this.state.player} : card)
+                cards: this.state.cards.map((card, index) =>
+                    this.state.revealed.includes(index)
+                        ? {
+                              ...card,
+                              state: CardState.SOLVED,
+                              solvedBy: this.state.player,
+                          }
+                        : card
+                ),
             });
         } else {
             return new NoCardFlipped({
                 ...this.state,
                 player: (this.state.player + 1) % this.state.players,
                 revealed: [],
-                cards: this.state.cards.map( (card, index) => this.state.revealed.includes(index) ? {...card, state: CardState.HIDDEN} : card)
+                cards: this.state.cards.map((card, index) =>
+                    this.state.revealed.includes(index)
+                        ? { ...card, state: CardState.HIDDEN }
+                        : card
+                ),
             });
         }
     }
 }
 
 export type MemoryGameStateHandler = GameStateHandler<GameState, number | void>;
-export type GameStore = Writable<MemoryGameStateHandler>
+export type GameStore = Writable<MemoryGameStateHandler>;
 export type GameSetup = {
     store: GameStore;
     board: Array<CardLocation>;
-}
+};
 
 const dogApiURL = 'https://random.dog/';
-export async function getGameStore(numPictures: number, boardSetup?: Array<CardLocation>): Promise<GameSetup> {
+export async function getGameStore(
+    numPictures: number,
+    boardSetup?: Array<CardLocation>
+): Promise<GameSetup> {
     const dogApi = new DogApi(dogApiURL);
     let cards: Array<CardConfig> = [];
-    if( !boardSetup ){
+    if (!boardSetup) {
         const pictureURLs = await dogApi.getDogs(numPictures);
-        const indices = shuffleArray(range(2*numPictures));
-        boardSetup = pictureURLs.map( url => ({ url, indices: [indices.pop(),indices.pop()] }));
+        const indices = shuffleArray(range(2 * numPictures));
+        boardSetup = pictureURLs.map((url) => ({
+            url,
+            indices: [indices.pop(), indices.pop()],
+        }));
     }
-    cards = new Array(2*numPictures).fill(null);
-    await Promise.all(boardSetup.map( picture => dogApi.downloadDog(picture.url).then( localURL => {
-        picture.indices.forEach( index => {
-            cards[index] = {
-                state: CardState.HIDDEN,
-                pictureURL: localURL
-            }
-        });
-    })))
+    cards = new Array(2 * numPictures).fill(null);
+    await Promise.all(
+        boardSetup.map((picture) =>
+            dogApi.downloadDog(picture.url).then((localURL) => {
+                picture.indices.forEach((index) => {
+                    cards[index] = {
+                        state: CardState.HIDDEN,
+                        pictureURL: localURL,
+                    };
+                });
+            })
+        )
+    );
     const initialState: GameState = {
         players: 2,
         player: 0,
         numSolved: 0,
         numPictures,
         revealed: [],
-        cards
+        cards,
     };
-    return { store: writable(new NoCardFlipped(initialState)), board: boardSetup };
+    return {
+        store: writable(new NoCardFlipped(initialState)),
+        board: boardSetup,
+    };
 }
 
-export function getStoreUpdate(ev: number | void): Updater<MemoryGameStateHandler> {
+export function getStoreUpdate(
+    ev: number | void
+): Updater<MemoryGameStateHandler> {
     return (state) => state.rules(ev);
 }

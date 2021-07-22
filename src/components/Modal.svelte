@@ -1,30 +1,36 @@
 <script lang="ts">
-    import {t} from "svelte-i18n";
-    import {modalStore} from "../services/modal";
-    import type { ModalMessage } from "../services/modal";
+    import { t } from 'svelte-i18n';
+    import { modalStore } from '../services/modal';
+    import type { ModalMessage } from '../services/modal';
 
     let userInput;
 
     function keyPress(event: KeyboardEvent, message: ModalMessage): void {
-        if( event.key === 'Enter' ){
+        if (event.key === 'Enter') {
             const action = message.buttons.find(() => true)?.action;
             closeModal(message, action);
         }
     }
 
-    function closeModal(message: ModalMessage, action?: (input?: string) => void): void {
-        if( message.input ){
-            if( !userInput ){
+    function closeModal(
+        message: ModalMessage,
+        action?: (input?: string) => void
+    ): void {
+        if (message.input) {
+            if (!userInput) {
                 return;
             }
-            if( message.inputValidation && !userInput.match(message.inputValidation)){
+            if (
+                message.inputValidation &&
+                !userInput.match(message.inputValidation)
+            ) {
                 return;
             }
         }
         modalStore.set(null);
         const input = userInput;
         userInput = undefined;
-        if( action ){
+        if (action) {
             action(input);
         }
     }
@@ -33,15 +39,23 @@
 {#if $modalStore}
     <div class="modal-container">
         <div class="window">
-            <h2>{ $t($modalStore.title) }</h2>
-            {#if $modalStore.message }
-            <p>{ $t($modalStore.message) }</p>
+            <h2>{$t($modalStore.title)}</h2>
+            {#if $modalStore.message}
+                <p>{$t($modalStore.message)}</p>
             {/if}
             {#if $modalStore.input}
-                <input type="text" bind:value={userInput} maxlength="20" on:keyup={(event) => keyPress(event, $modalStore)} autofocus/>
+                <input
+                    type="text"
+                    bind:value={userInput}
+                    maxlength="20"
+                    on:keyup={(event) => keyPress(event, $modalStore)}
+                    autofocus
+                />
             {/if}
             {#each $modalStore.buttons as button}
-                <button on:click={() => closeModal($modalStore, button.action)}>{ $t(button.label) }</button>
+                <button on:click={() => closeModal($modalStore, button.action)}
+                    >{$t(button.label)}</button
+                >
             {/each}
         </div>
     </div>
@@ -54,7 +68,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background-color: rgba(0,0,0,0.2);
+        background-color: rgba(0, 0, 0, 0.2);
         display: flex;
         justify-content: center;
         align-items: center;

@@ -1,38 +1,38 @@
 {
-  "action":{
-    "play": "play locally",
-    "close": "close",
-    "okay": "ok",
-    "join": "join game",
-    "host": "host game",
-    "ready": "let's go",
-    "newGame": "new game"
-  },
-  "query": {
-    "player1Name": "first player's name",
-    "player2Name": "second player's name",
-    "yourName": "What's your name?",
-    "gameCode": "Enter your game code",
-    "ready": "Ready to play?"
-  },
-  "img": {
-    "frontside": {
-      "alt": "a dog"
+    "action": {
+        "play": "play locally",
+        "close": "close",
+        "okay": "ok",
+        "join": "join game",
+        "host": "host game",
+        "ready": "let's go",
+        "newGame": "new game"
     },
-    "backside": {
-      "alt": "what could it be?"
+    "query": {
+        "player1Name": "first player's name",
+        "player2Name": "second player's name",
+        "yourName": "What's your name?",
+        "gameCode": "Enter your game code",
+        "ready": "Ready to play?"
+    },
+    "img": {
+        "frontside": {
+            "alt": "a dog"
+        },
+        "backside": {
+            "alt": "what could it be?"
+        }
+    },
+    "game": {
+        "code": "game code",
+        "loading": "Loading...",
+        "player1": "player 1",
+        "player2": "player 2",
+        "over": {
+            "title": "game over",
+            "draw": "it's a draw",
+            "player1win": "{player1Name} won!",
+            "player2win": "{player2Name} won!"
+        }
     }
-  },
-  "game": {
-    "code": "game code",
-    "loading": "Loading...",
-    "player1": "player 1",
-    "player2": "player 2",
-    "over": {
-      "title": "game over",
-      "draw": "it's a draw",
-      "player1win": "{player1Name} won!",
-      "player2win": "{player2Name} won!"
-    }
-  }
 }

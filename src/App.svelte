@@ -1,12 +1,12 @@
 <script>
-    import {Router, Link, Route} from "svelte-routing";
-    import {t} from "svelte-i18n";
-    import {isLoading} from "svelte-i18n";
-    import Game from "./components/Game.svelte";
-    import Modal from "./components/Modal.svelte";
-    import {GameMode} from "./services/game";
+    import { Router, Link, Route } from 'svelte-routing';
+    import { t } from 'svelte-i18n';
+    import { isLoading } from 'svelte-i18n';
+    import Game from './components/Game.svelte';
+    import Modal from './components/Modal.svelte';
+    import { GameMode } from './services/game';
 
-    export let url = "";
+    export let url = '';
 
     const playIcon = '/assets/dog.svg';
     const hostIcon = '/assets/dog-host.svg';
@@ -14,33 +14,33 @@
 </script>
 
 {#if !$isLoading}
-    <Router url={url}>
+    <Router {url}>
         <Route path="play">
-            <Game numPictures={6} gameMode={GameMode.LOCAL}/>
+            <Game numPictures={6} gameMode={GameMode.LOCAL} />
         </Route>
         <Route path="join">
-            <Game numPictures={6} gameMode={GameMode.JOIN}/>
+            <Game numPictures={6} gameMode={GameMode.JOIN} />
         </Route>
         <Route path="host">
-            <Game numPictures={6} gameMode={GameMode.HOST}/>
+            <Game numPictures={6} gameMode={GameMode.HOST} />
         </Route>
         <Route path="/">
             <nav>
                 <Link to="play">
                     <div class="play">
-                        <img src={playIcon} alt={$t('action.play')}/>
+                        <img src={playIcon} alt={$t('action.play')} />
                         <span class="text">{$t('action.play')}</span>
                     </div>
                 </Link>
                 <Link to="join">
                     <div class="play">
-                        <img src={joinIcon} alt={$t('action.join')}/>
+                        <img src={joinIcon} alt={$t('action.join')} />
                         <span class="text">{$t('action.join')}</span>
                     </div>
                 </Link>
                 <Link to="host">
                     <div class="play">
-                        <img src={hostIcon} alt={$t('action.host')}/>
+                        <img src={hostIcon} alt={$t('action.host')} />
                         <span class="text">{$t('action.host')}</span>
                     </div>
                 </Link>

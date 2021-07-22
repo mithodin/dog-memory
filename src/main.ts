@@ -1,11 +1,11 @@
 import App from './App.svelte';
-import {setupI18n} from "./i18n";
+import { setupI18n } from './i18n';
 
 setupI18n();
 
 const app = new App({
-	target: document.body,
-	props: {}
+    target: document.body,
+    props: {},
 });
 
 export default app;

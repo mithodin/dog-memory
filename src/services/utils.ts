@@ -3,5 +3,5 @@ export function createArray<T>(length: number, filler: () => T): Array<T> {
 }
 
 export function range(length: number): Array<number> {
-    return new Array(length).fill(0).map((_,i) => i);
+    return new Array(length).fill(0).map((_, i) => i);
 }

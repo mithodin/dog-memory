@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {t} from "svelte-i18n";
+    import { t } from 'svelte-i18n';
     export let activePlayer: number = 0;
     export let playerNames: Array<string>;
     export let gameCode: string = null;
@@ -8,12 +8,18 @@
 <div class="menu">
     {#if gameCode}
         <div class="game-code">
-            { $t('game.code') } { gameCode }
+            {$t('game.code')}
+            {gameCode}
         </div>
     {/if}
     <div class="players">
         {#each playerNames as player, index}
-            <div class={`player player-${index}`} class:active={activePlayer === index}>{player}</div>
+            <div
+                class={`player player-${index}`}
+                class:active={activePlayer === index}
+            >
+                {player}
+            </div>
         {/each}
     </div>
 </div>
@@ -51,10 +57,10 @@
     }
 
     .player-0 {
-        color: rgb(255,0,0);
+        color: rgb(255, 0, 0);
     }
 
     .player-1 {
-        color: rgb(0,0,255);
+        color: rgb(0, 0, 255);
     }
 </style>

@@ -1,13 +1,18 @@
-import {createArray} from "./utils";
-import type {Observable} from "rxjs";
-import {ReplaySubject} from "rxjs";
-import Peer, {DataConnection} from "peerjs";
+import { createArray } from './utils';
+import type { Observable } from 'rxjs';
+import { ReplaySubject } from 'rxjs';
+import Peer, { DataConnection } from 'peerjs';
 
 interface GameEventCommon<T extends string> {
     type: T;
 }
 
-export type GameEvent = CardClickedEvent | BoardSetupEvent | GuestHelloEvent | HostHelloEvent | ReadyEvent;
+export type GameEvent =
+    | CardClickedEvent
+    | BoardSetupEvent
+    | GuestHelloEvent
+    | HostHelloEvent
+    | ReadyEvent;
 
 export interface CardClickedEvent extends GameEventCommon<'CARD_CLICKED'> {
     card: number;
@@ -16,7 +21,7 @@ export interface CardClickedEvent extends GameEventCommon<'CARD_CLICKED'> {
 export function cardClicked(which: number): CardClickedEvent {
     return {
         type: 'CARD_CLICKED',
-        card: which
+        card: which,
     };
 }
 
@@ -32,7 +37,7 @@ export interface BoardSetupEvent extends GameEventCommon<'BOARD_SETUP'> {
 export function boardSetup(board: Array<CardLocation>): BoardSetupEvent {
     return {
         type: 'BOARD_SETUP',
-        cards: board
+        cards: board,
     };
 }
 
@@ -43,7 +48,7 @@ export interface GuestHelloEvent extends GameEventCommon<'GUEST_HELLO'> {
 export function guestHello(name: string): GuestHelloEvent {
     return {
         type: 'GUEST_HELLO',
-        name
+        name,
     };
 }
 
@@ -54,7 +59,7 @@ export interface HostHelloEvent extends GameEventCommon<'HOST_HELLO'> {
 export function hostHello(name: string): HostHelloEvent {
     return {
         type: 'HOST_HELLO',
-        name
+        name,
     };
 }
 
@@ -79,23 +84,24 @@ export function closeGame(): CloseGameEvent {
 export abstract class RemoteSession {
     protected readonly connection$ = new ReplaySubject<DataConnection>(1);
     protected readonly events = new ReplaySubject<GameEvent>();
-    public readonly remoteEvents: Observable<GameEvent> = this.events.asObservable();
+    public readonly remoteEvents: Observable<GameEvent> =
+        this.events.asObservable();
 
     protected constructor() {
-        this.events.subscribe(event => {
+        this.events.subscribe((event) => {
             console.log('got remote event: ', event);
         });
     }
 
     public send(event: GameEvent): void {
-        this.connection$.subscribe(connection => {
+        this.connection$.subscribe((connection) => {
             connection.send(event);
             console.log('sent: ', event);
         });
     }
 
     public close(): void {
-        this.connection$.subscribe(connection => {
+        this.connection$.subscribe((connection) => {
             connection.close();
         });
     }
@@ -114,9 +120,11 @@ export abstract class RemoteSession {
     }
 
     private static getAnimalEmoji(): string {
-        const firstAnimal = 0x1F400;
-        const lastAnimal = 0x1F42C;
-        const charCode: number = firstAnimal + Math.floor(Math.random() * (lastAnimal - firstAnimal + 1));
+        const firstAnimal = 0x1f400;
+        const lastAnimal = 0x1f42c;
+        const charCode: number =
+            firstAnimal +
+            Math.floor(Math.random() * (lastAnimal - firstAnimal + 1));
         return String.fromCodePoint(charCode);
     }
 
@@ -132,10 +140,14 @@ export abstract class RemoteSession {
 
     private static hashKey(key: string): Promise<string> {
         const encoder = new TextEncoder();
-        return window.crypto.subtle.digest('SHA-256', encoder.encode(key)).then( hash => {
-            const hashArray = Array.from(new Uint8Array(hash));
-            return hashArray.map(byte => byte.toString(16).padStart(2,'0')).join('');
-        });
+        return window.crypto.subtle
+            .digest('SHA-256', encoder.encode(key))
+            .then((hash) => {
+                const hashArray = Array.from(new Uint8Array(hash));
+                return hashArray
+                    .map((byte) => byte.toString(16).padStart(2, '0'))
+                    .join('');
+            });
     }
 }
 
@@ -146,15 +158,19 @@ export class RemoteSessionHost extends RemoteSession {
     ) {
         super();
         let peerPromise = Promise.resolve(peer);
-        if( !peer ){
-            peerPromise = RemoteSession.getHostKey(gameCode).then(hostKey => new Peer(hostKey));
+        if (!peer) {
+            peerPromise = RemoteSession.getHostKey(gameCode).then(
+                (hostKey) => new Peer(hostKey)
+            );
         }
-        peerPromise.then( resolvedPeer => {
+        peerPromise.then((resolvedPeer) => {
             resolvedPeer.on('connection', (connection) => {
                 connection.on('data', (data) => this.events.next(data));
-                connection.on('open', () => {this.connection$.next(connection);});
+                connection.on('open', () => {
+                    this.connection$.next(connection);
+                });
             });
-        })
+        });
     }
 }
 
@@ -165,15 +181,21 @@ export class RemoteSessionClient extends RemoteSession {
     ) {
         super();
         let peerPromise = Promise.resolve(peer);
-        if( !peer ){
-            peerPromise = RemoteSession.getGuestKey(gameCode).then(hostKey => new Peer(hostKey));
+        if (!peer) {
+            peerPromise = RemoteSession.getGuestKey(gameCode).then(
+                (hostKey) => new Peer(hostKey)
+            );
         }
-        Promise.all([peerPromise, RemoteSession.getHostKey(gameCode)]).then(([ resolvedPeer, hostKey ]) => {
-            resolvedPeer.on('open', () => {
-                const connection = resolvedPeer.connect(hostKey);
-                connection.on('data', (data) => this.events.next(data));
-                connection.on('open', () => {this.connection$.next(connection);});
-            });
-        });
+        Promise.all([peerPromise, RemoteSession.getHostKey(gameCode)]).then(
+            ([resolvedPeer, hostKey]) => {
+                resolvedPeer.on('open', () => {
+                    const connection = resolvedPeer.connect(hostKey);
+                    connection.on('data', (data) => this.events.next(data));
+                    connection.on('open', () => {
+                        this.connection$.next(connection);
+                    });
+                });
+            }
+        );
     }
 }

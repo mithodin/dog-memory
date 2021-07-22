@@ -1,26 +1,35 @@
 <script lang="ts">
-    import {t} from "svelte-i18n";
-    import {CardState} from "../services/game";
-    import type {CardConfig} from "../services/game";
+    import { t } from 'svelte-i18n';
+    import { CardState } from '../services/game';
+    import type { CardConfig } from '../services/game';
 
     export let backside: string;
     export let cardConfig: CardConfig;
 </script>
 
-<div class="card-container"
-     on:mouseup|preventDefault|stopPropagation
-     on:auxclick|stopPropagation|preventDefault
-     class:clickable={cardConfig.state === CardState.HIDDEN}
+<div
+    class="card-container"
+    on:mouseup|preventDefault|stopPropagation
+    on:auxclick|stopPropagation|preventDefault
+    class:clickable={cardConfig.state === CardState.HIDDEN}
 >
-    <img src={backside} alt={$t('img.backside.alt')} class:show={cardConfig.state === CardState.HIDDEN}/>
     <img
-            src={cardConfig.pictureURL}
-            alt={$t('img.frontside.alt')}
-            class:show={cardConfig.state !== CardState.HIDDEN}
-            class:solved={cardConfig.state === CardState.SOLVED}
+        src={backside}
+        alt={$t('img.backside.alt')}
+        class:show={cardConfig.state === CardState.HIDDEN}
     />
-    {#if cardConfig.state === CardState.SOLVED }
-        <div class="overlay" class:player-one={cardConfig.solvedBy === 0} class:player-two={cardConfig.solvedBy === 1}></div>
+    <img
+        src={cardConfig.pictureURL}
+        alt={$t('img.frontside.alt')}
+        class:show={cardConfig.state !== CardState.HIDDEN}
+        class:solved={cardConfig.state === CardState.SOLVED}
+    />
+    {#if cardConfig.state === CardState.SOLVED}
+        <div
+            class="overlay"
+            class:player-one={cardConfig.solvedBy === 0}
+            class:player-two={cardConfig.solvedBy === 1}
+        />
     {/if}
 </div>
 
@@ -44,12 +53,12 @@
         width: 100%;
         object-fit: cover;
         border-radius: 20px;
-        display:none;
+        display: none;
         pointer-events: none;
     }
 
     .card-container img.show {
-        display:initial;
+        display: initial;
     }
 
     .card-container img.solved {
@@ -67,10 +76,10 @@
     }
 
     .player-one {
-        background-color: rgba(255,0,0,0.3);
+        background-color: rgba(255, 0, 0, 0.3);
     }
 
     .player-two {
-        background-color: rgba(0,0,255,0.3);
+        background-color: rgba(0, 0, 255, 0.3);
     }
 </style>

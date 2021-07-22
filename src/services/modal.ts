@@ -1,9 +1,9 @@
-import {writable} from "svelte/store";
+import { writable } from 'svelte/store';
 
 export interface ModalMessage {
     title: string;
     message?: string;
-    buttons: Array<{ label: string, action?: (input?: string) => void}>;
+    buttons: Array<{ label: string; action?: (input?: string) => void }>;
     input?: boolean;
     inputValidation?: RegExp;
 }

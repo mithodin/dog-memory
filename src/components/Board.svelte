@@ -1,7 +1,7 @@
 <script lang="ts">
-    import type {CardConfig} from "../services/game";
-    import {createEventDispatcher} from "svelte";
-    import Card from "./Card.svelte";
+    import type { CardConfig } from '../services/game';
+    import { createEventDispatcher } from 'svelte';
+    import Card from './Card.svelte';
 
     export let active: boolean = false;
     export let cards: Array<CardConfig> = [];
@@ -16,10 +16,19 @@
         }
     }
 </script>
-<div class="cards" style={`max-width: ${columns * 210}px`} class:disabled={!active}>
+
+<div
+    class="cards"
+    style={`max-width: ${columns * 210}px`}
+    class:disabled={!active}
+>
     {#each cards as card, index}
-    <Card {backside} cardConfig={card} on:mouseup={() => emitIfActive(index)} />
-{/each}
+        <Card
+            {backside}
+            cardConfig={card}
+            on:mouseup={() => emitIfActive(index)}
+        />
+    {/each}
 </div>
 
 <style>

@@ -1,38 +1,38 @@
 {
-  "action":{
-    "play": "lokales Spiel",
-    "close": "schließen",
-    "okay": "ok",
-    "join": "Spiel beitreten",
-    "host": "Spiel öffnen",
-    "ready": "auf geht's",
-    "newGame": "Neues Spiel"
-  },
-  "query": {
-    "player1Name": "Name von Spieler*in 1",
-    "player2Name": "Name von Spieler*in 2",
-    "yourName": "Wie heißt du?",
-    "gameCode": "Gib einen Spielcode ein",
-    "ready": "Bereit?"
-  },
-  "img": {
-    "frontside": {
-      "alt": "ein Hund"
+    "action": {
+        "play": "lokales Spiel",
+        "close": "schließen",
+        "okay": "ok",
+        "join": "Spiel beitreten",
+        "host": "Spiel öffnen",
+        "ready": "auf geht's",
+        "newGame": "Neues Spiel"
     },
-    "backside": {
-      "alt": "Was kann es nur sein?"
+    "query": {
+        "player1Name": "Name von Spieler*in 1",
+        "player2Name": "Name von Spieler*in 2",
+        "yourName": "Wie heißt du?",
+        "gameCode": "Gib einen Spielcode ein",
+        "ready": "Bereit?"
+    },
+    "img": {
+        "frontside": {
+            "alt": "ein Hund"
+        },
+        "backside": {
+            "alt": "Was kann es nur sein?"
+        }
+    },
+    "game": {
+        "code": "Spielcode",
+        "loading": "Lade Bilder...",
+        "player1": "Spieler*in 1",
+        "player2": "Spieler*in 2",
+        "over": {
+            "title": "Spiel beendet",
+            "draw": "Unentschieden.",
+            "player1win": "{player1Name} hat gewonnen!",
+            "player2win": "{player2Name} hat gewonnen!"
+        }
     }
-  },
-  "game": {
-    "code": "Spielcode",
-    "loading": "Lade Bilder...",
-    "player1": "Spieler*in 1",
-    "player2": "Spieler*in 2",
-    "over": {
-      "title": "Spiel beendet",
-      "draw": "Unentschieden.",
-      "player1win": "{player1Name} hat gewonnen!",
-      "player2win": "{player2Name} hat gewonnen!"
-    }
-  }
 }
