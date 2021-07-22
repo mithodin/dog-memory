@@ -3,6 +3,8 @@ import { DogApi } from './random-dog';
 import { shuffleArray } from './shuffle';
 import type { BoardSetupEvent } from './remote-session';
 import { range } from './utils';
+import type { Observable } from 'rxjs';
+import { mapTo, of, tap } from 'rxjs';
 
 export enum GameMode {
     LOCAL,
@@ -33,16 +35,16 @@ export interface GameState {
 
 interface GameStateHandler<STATE, EVENT> {
     readonly state: STATE;
-    rules: (ev: EVENT) => GameStateHandler<STATE, any>;
+    rules: (ev: EVENT) => Observable<GameStateHandler<STATE, any>>;
 }
 
 class NoCardFlipped implements GameStateHandler<GameState, number> {
     constructor(public readonly state: GameState) {}
 
-    rules(ev: number): GameStateHandler<GameState, number> {
+    rules(ev: number): Observable<GameStateHandler<GameState, number>> {
         switch (this.state.cards[ev].state) {
             case CardState.HIDDEN:
-                return new OneCardFlipped({
+                return of(new OneCardFlipped({
                     ...this.state,
                     revealed: [ev],
                     cards: this.state.cards.map((card, index) =>
@@ -50,9 +52,9 @@ class NoCardFlipped implements GameStateHandler<GameState, number> {
                             ? { ...card, state: CardState.REVEALED }
                             : card
                     ),
-                });
+                }));
             default:
-                return this;
+                return of(this);
         }
     }
 }
@@ -61,10 +63,10 @@ class OneCardFlipped
     extends NoCardFlipped
     implements GameStateHandler<GameState, number>
 {
-    rules(ev: number): GameStateHandler<GameState, number | void> {
+    rules(ev: number): Observable<GameStateHandler<GameState, number | void>> {
         switch (this.state.cards[ev].state) {
             case CardState.HIDDEN:
-                return new TwoCardsFlipped({
+                return of(new TwoCardsFlipped({
                     ...this.state,
                     revealed: [...this.state.revealed, ev],
                     cards: this.state.cards.map((card, index) =>
@@ -72,9 +74,9 @@ class OneCardFlipped
                             ? { ...card, state: CardState.REVEALED }
                             : card
                     ),
-                });
+                }));
             default:
-                return this;
+                return of(this);
         }
     }
 }
@@ -82,11 +84,11 @@ class OneCardFlipped
 class TwoCardsFlipped implements GameStateHandler<GameState, void> {
     constructor(public readonly state: GameState) {}
 
-    rules(_: void): GameStateHandler<GameState, number> {
+    rules(_: void): Observable<GameStateHandler<GameState, number>> {
         const card1 = this.state.cards[this.state.revealed[0]];
         const card2 = this.state.cards[this.state.revealed[1]];
         if (card1?.pictureURL === card2?.pictureURL) {
-            return new NoCardFlipped({
+            return of(new NoCardFlipped({
                 ...this.state,
                 numSolved: this.state.numSolved + 1,
                 revealed: [],
@@ -99,9 +101,9 @@ class TwoCardsFlipped implements GameStateHandler<GameState, void> {
                           }
                         : card
                 ),
-            });
+            }));
         } else {
-            return new NoCardFlipped({
+            return of(new NoCardFlipped({
                 ...this.state,
                 player: (this.state.player + 1) % this.state.players,
                 revealed: [],
@@ -110,7 +112,7 @@ class TwoCardsFlipped implements GameStateHandler<GameState, void> {
                         ? { ...card, state: CardState.HIDDEN }
                         : card
                 ),
-            });
+            }));
         }
     }
 }
@@ -125,7 +127,7 @@ export type GameSetup = {
 const dogApiURL = 'https://random.dog/';
 export async function getGameStore(
     numPictures: number,
-    startPlayer: number = 0,
+    firstPlayer: number = 0,
     boardSetup?: Omit<BoardSetupEvent,'type'>
 ): Promise<GameSetup> {
     const dogApi = new DogApi(dogApiURL);
@@ -133,11 +135,13 @@ export async function getGameStore(
     if (!boardSetup) {
         const pictureURLs = await dogApi.getDogs(numPictures);
         const indices = shuffleArray(range(2 * numPictures));
-        boardSetup.cards = pictureURLs.map((url) => ({
-            url,
-            indices: [indices.pop(), indices.pop()],
-        }));
-        boardSetup.firstPlayer = startPlayer
+        boardSetup = {
+            cards: pictureURLs.map((url) => ({
+                url,
+                indices: [indices.pop(), indices.pop()],
+            })),
+            firstPlayer
+        };
     }
     cards = new Array(2 * numPictures).fill(null);
     await Promise.all(
@@ -166,8 +170,9 @@ export async function getGameStore(
     };
 }
 
-export function getStoreUpdate(
-    ev: number | void
-): Updater<MemoryGameStateHandler> {
-    return (state) => state.rules(ev);
+export function handleGameEvent(event: number | void, state: MemoryGameStateHandler, store: GameStore): Observable<void> {
+    return state.rules(event).pipe(
+        tap(newState => store.set(newState)),
+        mapTo(void 0)
+    );
 }

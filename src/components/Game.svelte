@@ -2,7 +2,7 @@
     import { onDestroy, onMount } from 'svelte';
     import { t } from 'svelte-i18n';
     import type { GameStore } from '../services/game';
-    import { GameMode, getGameStore, getStoreUpdate } from '../services/game';
+    import { GameMode, getGameStore, handleGameEvent } from '../services/game';
     import { navigate } from 'svelte-routing';
     import { modalStore } from '../services/modal';
     import Loading from './Loading.svelte';
@@ -55,8 +55,9 @@
             if (gameState.state?.revealed?.length === 2) {
                 waitingToResolve = true;
                 setTimeout(() => {
-                    state.update(getStoreUpdate(void 0));
-                    waitingToResolve = false;
+                    handleGameEvent(void 0, gameState, state).subscribe(() => {
+                        waitingToResolve = false;
+                    });
                 }, 1000);
             }
             if (gameState.state?.numSolved === gameState.state?.numPictures) {
@@ -112,7 +113,10 @@
     }
 
     function cardSelected(index: number) {
-        state.update(getStoreUpdate(index));
+        waitingToResolve = true;
+        handleGameEvent(index, $state, state).subscribe(() => {
+            waitingToResolve = false;
+        });
     }
 
     async function setUpLocalSession() {
