@@ -7,11 +7,12 @@
 
     function keyPress(event: KeyboardEvent, message: ModalMessage): void {
         if( event.key === 'Enter' ){
-            closeModal(message);
+            const action = message.buttons.find(() => true)?.action;
+            closeModal(message, action);
         }
     }
 
-    function closeModal(message: ModalMessage): void {
+    function closeModal(message: ModalMessage, action?: (input?: string) => void): void {
         if( message.input ){
             if( !userInput ){
                 return;
@@ -23,8 +24,8 @@
         modalStore.set(null);
         const input = userInput;
         userInput = undefined;
-        if( message.action ){
-            message.action(input);
+        if( action ){
+            action(input);
         }
     }
 </script>
@@ -39,7 +40,9 @@
             {#if $modalStore.input}
                 <input type="text" bind:value={userInput} maxlength="20" on:keyup={(event) => keyPress(event, $modalStore)} autofocus/>
             {/if}
-            <button on:click={() => closeModal($modalStore)}>{ $t($modalStore.button) }</button>
+            {#each $modalStore.buttons as button}
+                <button on:click={() => closeModal($modalStore, button.action)}>{ $t(button.label) }</button>
+            {/each}
         </div>
     </div>
 {/if}

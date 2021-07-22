@@ -67,10 +67,18 @@
                     gameResult = $t('game.over.player2win', {values: {player2Name}});
                 }
                 modalStore.set({
-                    title: $t('game.over.title'),
+                    title: 'game.over.title',
                     message: gameResult,
-                    button: $t('action.close'),
-                    action: () => navigate('/')
+                    buttons: [
+                        {
+                            label: 'action.newGame',
+                            action: () => newGame()
+                        },
+                        {
+                            label: 'action.close',
+                            action: () => navigate('/')
+                        }
+                    ]
                 });
             }
         })
@@ -186,11 +194,19 @@
         ).subscribe( () => { playersReady = true })
 
         modalStore.set({
-            button: 'action.ready',
             message: '',
             title: 'query.ready',
-            action: () => remoteSession.send(ready())
+            buttons: [
+                {
+                    label: 'action.ready',
+                    action: () => remoteSession.send(ready())
+                }
+            ]
         });
+    }
+
+    function newGame(): void {
+
     }
 </script>
 <div class="game">

@@ -64,6 +64,18 @@ export function ready(): ReadyEvent {
     return { type: 'READY' };
 }
 
+export type NewGameEvent = GameEventCommon<'NEW_GAME'>;
+
+export function newGame(): NewGameEvent {
+    return { type: 'NEW_GAME' };
+}
+
+export type CloseGameEvent = GameEventCommon<'CLOSE_GAME'>;
+
+export function closeGame(): CloseGameEvent {
+    return { type: 'CLOSE_GAME' };
+}
+
 export abstract class RemoteSession {
     protected readonly connection$ = new ReplaySubject<DataConnection>(1);
     protected readonly events = new ReplaySubject<GameEvent>();

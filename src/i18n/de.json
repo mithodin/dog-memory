@@ -5,7 +5,8 @@
     "okay": "ok",
     "join": "Spiel beitreten",
     "host": "Spiel öffnen",
-    "ready": "auf geht's"
+    "ready": "auf geht's",
+    "newGame": "Neues Spiel"
   },
   "query": {
     "player1Name": "Name von Spieler*in 1",

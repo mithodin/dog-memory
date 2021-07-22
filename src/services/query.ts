@@ -52,14 +52,18 @@ export function queryPlayer(title: string = '', message: string = null, button: 
     const result = new AsyncSubject<string>();
     modalStore.set({
         title,
-        button,
         message,
         input: true,
         inputValidation,
-        action: (name) => {
-            result.next(name);
-            result.complete();
-        }
+        buttons: [
+            {
+                label: button,
+                action: (name) => {
+                    result.next(name);
+                    result.complete();
+                }
+            }
+        ]
     });
     return result.asObservable();
 }
