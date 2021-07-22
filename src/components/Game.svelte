@@ -6,13 +6,10 @@
     import { navigate } from 'svelte-routing';
     import { modalStore } from '../services/modal';
     import Loading from './Loading.svelte';
-    import {
-        getPlayerName,
-        getPlayerNames,
-        queryChain,
-    } from '../services/query';
+    import { getPlayerName, getPlayerNames, queryChain } from '../services/query';
     import Board from './Board.svelte';
     import Players from './Players.svelte';
+    import type { BoardSetupEvent, GuestHelloEvent, HostHelloEvent, RemoteSession } from '../services/remote-session';
     import {
         boardSetup,
         cardClicked,
@@ -20,13 +17,7 @@
         hostHello,
         ready,
         RemoteSessionClient,
-        RemoteSessionHost,
-    } from '../services/remote-session';
-    import type {
-        HostHelloEvent,
-        GuestHelloEvent,
-        BoardSetupEvent,
-        RemoteSession,
+        RemoteSessionHost
     } from '../services/remote-session';
     import { filter, firstValueFrom, forkJoin, take, tap } from 'rxjs';
 
@@ -207,7 +198,7 @@
                 filter<BoardSetupEvent>((event) => event.type === 'BOARD_SETUP')
             )
         );
-        const setup = await getGameStore(numPictures, remoteBoard.cards);
+        const setup = await getGameStore(numPictures, 0, remoteBoard);
         state = setup.store;
 
         setUpRemoteCommon();
@@ -243,7 +234,25 @@
         });
     }
 
-    function newGame(): void {}
+    function newGame(): void {
+        switch(gameMode) {
+            case GameMode.LOCAL:
+                newGameLocal();
+                break;
+            case GameMode.HOST:
+            case GameMode.JOIN:
+                newGameRemote();
+                break;
+        }
+    }
+
+    function newGameLocal(): void {
+
+    }
+
+    function newGameRemote(): void {
+
+    }
 </script>
 
 <div class="game">

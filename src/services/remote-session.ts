@@ -32,12 +32,13 @@ export interface CardLocation {
 
 export interface BoardSetupEvent extends GameEventCommon<'BOARD_SETUP'> {
     cards: Array<CardLocation>;
+    firstPlayer: number;
 }
 
-export function boardSetup(board: Array<CardLocation>): BoardSetupEvent {
+export function boardSetup(board: Omit<BoardSetupEvent,'type'>): BoardSetupEvent {
     return {
         type: 'BOARD_SETUP',
-        cards: board,
+        ...board
     };
 }
 

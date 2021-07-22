@@ -1,7 +1,7 @@
 import { Updater, Writable, writable } from 'svelte/store';
 import { DogApi } from './random-dog';
 import { shuffleArray } from './shuffle';
-import type { CardLocation } from './remote-session';
+import type { BoardSetupEvent } from './remote-session';
 import { range } from './utils';
 
 export enum GameMode {
@@ -119,27 +119,29 @@ export type MemoryGameStateHandler = GameStateHandler<GameState, number | void>;
 export type GameStore = Writable<MemoryGameStateHandler>;
 export type GameSetup = {
     store: GameStore;
-    board: Array<CardLocation>;
+    board: Omit<BoardSetupEvent,'type'>;
 };
 
 const dogApiURL = 'https://random.dog/';
 export async function getGameStore(
     numPictures: number,
-    boardSetup?: Array<CardLocation>
+    startPlayer: number = 0,
+    boardSetup?: Omit<BoardSetupEvent,'type'>
 ): Promise<GameSetup> {
     const dogApi = new DogApi(dogApiURL);
     let cards: Array<CardConfig> = [];
     if (!boardSetup) {
         const pictureURLs = await dogApi.getDogs(numPictures);
         const indices = shuffleArray(range(2 * numPictures));
-        boardSetup = pictureURLs.map((url) => ({
+        boardSetup.cards = pictureURLs.map((url) => ({
             url,
             indices: [indices.pop(), indices.pop()],
         }));
+        boardSetup.firstPlayer = startPlayer
     }
     cards = new Array(2 * numPictures).fill(null);
     await Promise.all(
-        boardSetup.map((picture) =>
+        boardSetup.cards.map((picture) =>
             dogApi.downloadDog(picture.url).then((localURL) => {
                 picture.indices.forEach((index) => {
                     cards[index] = {
@@ -152,7 +154,7 @@ export async function getGameStore(
     );
     const initialState: GameState = {
         players: 2,
-        player: 0,
+        player: boardSetup.firstPlayer,
         numSolved: 0,
         numPictures,
         revealed: [],
