@@ -21,6 +21,8 @@
     "@types/jest": "^26.0.24",
     "@types/streamx": "^2.9.1",
     "jest": "^27.0.6",
+    "prettier": "^2.3.2",
+    "prettier-plugin-svelte": "^2.3.1",
     "rollup": "^2.53.2",
     "rollup-plugin-css-only": "^3.1.0",
     "rollup-plugin-livereload": "^2.0.0",
