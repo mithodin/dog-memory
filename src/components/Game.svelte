@@ -25,7 +25,7 @@
     export let numPictures: number = 2;
 
     let playersReady = false;
-    let isActive = () => true;
+    let localPlayers = [0,1];
     let gameCode: string = null;
     let remoteSession: RemoteSession = null;
     let state: GameStore;
@@ -117,7 +117,7 @@
     }
 
     async function setUpHostSession() {
-        isActive = () => $state.state.player === 0;
+        localPlayers = [0];
         gameCode = RemoteSessionHost.getEmojiCode();
         remoteSession = new RemoteSessionHost(gameCode);
         const playerName$ = getPlayerName('query.yourName', 'action.okay').pipe(
@@ -149,7 +149,7 @@
     }
 
     async function setUpJoinSession() {
-        isActive = () => $state.state.player === 1;
+        localPlayers = [1];
         const { player2NameR, gameCodeR } = await firstValueFrom(
             queryChain([
                 {
@@ -257,7 +257,7 @@
         <Board
             cards={$state.state.cards}
             on:cardSelected={(event) => userInput(event.detail)}
-            active={!waitingToResolve && isActive() && playersReady}
+            active={!waitingToResolve && localPlayers.includes($state.state.player) && playersReady}
             {columns}
         />
     {:else}
