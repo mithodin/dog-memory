@@ -1,6 +1,6 @@
 import { createArray } from './utils';
 import type { Observable } from 'rxjs';
-import { ReplaySubject } from 'rxjs';
+import { BehaviorSubject, filter, ReplaySubject, take } from 'rxjs';
 import Peer, { DataConnection } from 'peerjs';
 
 interface GameEventCommon<T extends string> {
@@ -12,7 +12,10 @@ export type GameEvent =
     | BoardSetupEvent
     | GuestHelloEvent
     | HostHelloEvent
-    | ReadyEvent;
+    | ReadyEvent
+    | PlayerLeftEvent
+    | NewGameEvent
+    | CloseGameEvent;
 
 export interface CardClickedEvent extends GameEventCommon<'CARD_CLICKED'> {
     card: number;
@@ -82,29 +85,52 @@ export function closeGame(): CloseGameEvent {
     return { type: 'CLOSE_GAME' };
 }
 
+export type PlayerLeftEvent = GameEventCommon<'PLAYER_LEFT'>;
+
+export function playerLeft(): PlayerLeftEvent {
+    return { type: 'PLAYER_LEFT' };
+}
+
 export abstract class RemoteSession {
+    private readonly fakeTime$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
     protected readonly connection$ = new ReplaySubject<DataConnection>(1);
-    protected readonly events = new ReplaySubject<GameEvent>();
+    protected readonly events = new ReplaySubject<GameEvent>(Infinity, 0, { now: () => this.fakeTime$.getValue() });
     public readonly remoteEvents: Observable<GameEvent> =
         this.events.asObservable();
 
     protected constructor() {
-        this.events.subscribe((event) => {
-            console.log('got remote event: ', event);
+        this.connection$.subscribe( (connection) => {
+            connection.on('close', () => this.events.next(playerLeft()));
         });
     }
 
     public send(event: GameEvent): void {
         this.connection$.subscribe((connection) => {
             connection.send(event);
-            console.log('sent: ', event);
         });
     }
 
     public close(): void {
         this.connection$.subscribe((connection) => {
+            this.events.complete();
             connection.close();
         });
+    }
+
+    public reset(): void {
+        this.fakeTime$.next(this.fakeTime$.getValue() + 1);
+    }
+
+    public getNext<T extends GameEvent>(type: T["type"]): Observable<T> {
+        return this.getEventType(type).pipe(
+            take(1)
+        );
+    }
+
+    public getEventType<T extends GameEvent>(type: T["type"]): Observable<T> {
+        return this.remoteEvents.pipe(
+            filter<T>((event) => event.type === type),
+        );
     }
 
     /**

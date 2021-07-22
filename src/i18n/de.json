@@ -28,6 +28,7 @@
         "loading": "Lade Bilder...",
         "player1": "Spieler*in 1",
         "player2": "Spieler*in 2",
+        "playerLeft": "Spieler hat das Spiel verlassen",
         "over": {
             "title": "Spiel beendet",
             "draw": "Unentschieden.",

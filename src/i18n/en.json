@@ -28,6 +28,7 @@
         "loading": "Loading...",
         "player1": "player 1",
         "player2": "player 2",
+        "playerLeft": "player left the game",
         "over": {
             "title": "game over",
             "draw": "it's a draw",

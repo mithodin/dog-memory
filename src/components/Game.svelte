@@ -9,17 +9,17 @@
     import { getPlayerName, getPlayerNames, queryChain } from '../services/query';
     import Board from './Board.svelte';
     import Players from './Players.svelte';
-    import type { BoardSetupEvent, GuestHelloEvent, HostHelloEvent, RemoteSession } from '../services/remote-session';
+    import type { BoardSetupEvent, HostHelloEvent, RemoteSession } from '../services/remote-session';
     import {
         boardSetup,
         cardClicked,
         guestHello,
-        hostHello,
+        hostHello, newGame,
         ready,
         RemoteSessionClient,
         RemoteSessionHost
     } from '../services/remote-session';
-    import { filter, firstValueFrom, forkJoin, take, tap } from 'rxjs';
+    import { firstValueFrom, forkJoin, of, switchMap, tap } from 'rxjs';
 
     export let gameMode: GameMode = GameMode.LOCAL;
     export let numPictures: number = 2;
@@ -69,13 +69,13 @@
                     buttons: [
                         {
                             label: 'action.newGame',
-                            action: () => newGame(),
+                            action: () => startNewGame(),
                         },
                         {
                             label: 'action.close',
                             action: () => navigate('/'),
-                        },
-                    ],
+                        }
+                    ]
                 });
             }
         });
@@ -126,21 +126,15 @@
             })
         );
 
-        const setup = await getGameStore(numPictures);
+        const setup = await getGameStore(numPictures, Math.random() > 0.5 ? 0 : 1);
         const remoteSetup = boardSetup(setup.board);
         state = setup.store;
 
         const [event, playerName] = await firstValueFrom(
-            forkJoin<[GuestHelloEvent, string]>(
-                remoteSession.remoteEvents.pipe(
-                    filter<GuestHelloEvent>(
-                        (event) => event.type === 'GUEST_HELLO'
-                    ),
-                    take(1)
-                ),
+            forkJoin([
+                remoteSession.getNext('GUEST_HELLO'),
                 playerName$
-            )
-        );
+            ]));
         player2Name = event.name;
         remoteSession.send(hostHello(playerName));
         remoteSession.send(remoteSetup);
@@ -170,18 +164,12 @@
 
         remoteSession = new RemoteSessionClient(gameCode);
         remoteSession.send(guestHello(player2Name));
-        remoteSession.remoteEvents
-            .pipe(
-                filter<HostHelloEvent>((event) => event.type === 'HOST_HELLO'),
-                take(1)
-            )
+        remoteSession.getNext<HostHelloEvent>('HOST_HELLO')
             .subscribe((event) => {
                 player1Name = event.name;
             });
         const remoteBoard = await firstValueFrom(
-            remoteSession.remoteEvents.pipe(
-                filter<BoardSetupEvent>((event) => event.type === 'BOARD_SETUP')
-            )
+            remoteSession.getNext<BoardSetupEvent>('BOARD_SETUP')
         );
         const setup = await getGameStore(numPictures, 0, remoteBoard);
         state = setup.store;
@@ -195,14 +183,21 @@
                 case 'CARD_CLICKED':
                     cardSelected(event.card);
                     break;
+                case 'PLAYER_LEFT':
+                    modalStore.set({
+                        title: 'game.playerLeft',
+                        buttons: [
+                            {
+                                label: 'action.okay',
+                                action: () => navigate('/')
+                            }
+                        ]
+                    });
+                    break;
             }
         });
 
-        remoteSession.remoteEvents
-            .pipe(
-                filter((event) => event.type === 'READY'),
-                take(1)
-            )
+        remoteSession.getNext('READY')
             .subscribe(() => {
                 playersReady = true;
             });
@@ -219,14 +214,16 @@
         });
     }
 
-    function newGame(): void {
+    function startNewGame(): void {
         switch(gameMode) {
             case GameMode.LOCAL:
                 newGameLocal();
                 break;
             case GameMode.HOST:
+                newGameRemoteHost();
+                break;
             case GameMode.JOIN:
-                newGameRemote();
+                newGameRemoteJoin();
                 break;
         }
     }
@@ -235,13 +232,37 @@
         dispatchGameEvent(null, $state, state);
     }
 
-    function newGameRemote(): void {
+    function newGameRemoteHost(): void {
+        remoteSession.reset();
+        remoteSession.send(newGame());
 
+        remoteSession.getNext('NEW_GAME').subscribe(() => {
+            dispatchGameEvent(of(null), $state, state, (newState) => {
+                remoteSession.send(boardSetup({
+                    cards: newState.state.boardSetup,
+                    firstPlayer: newState.state.firstPlayer
+                }))
+            });
+        });
     }
 
-    function dispatchGameEvent(event: any, state: MemoryGameStateHandler, store: GameStore): void {
+    function newGameRemoteJoin(): void {
+        const obs = remoteSession.getNext('NEW_GAME').pipe(
+            switchMap(() => {
+                remoteSession.reset();
+                remoteSession.send(newGame());
+                return remoteSession.getNext('BOARD_SETUP');
+            })
+        );
+        dispatchGameEvent(obs, $state, state);
+    }
+
+    function dispatchGameEvent(event: any, state: MemoryGameStateHandler, store: GameStore, callback?: (state: MemoryGameStateHandler) => void): void {
         waitingToResolve = true;
-        handleGameEvent(event, state, store).subscribe(() => {
+        handleGameEvent(event, state, store).subscribe(newState => {
+            if( callback ){
+                callback(newState);
+            }
             waitingToResolve = false;
         });
     }

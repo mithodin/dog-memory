@@ -1,10 +1,10 @@
 import { Writable, writable } from 'svelte/store';
 import { DogApi } from './random-dog';
 import { shuffleArray } from './shuffle';
-import type { BoardSetupEvent } from './remote-session';
+import type { BoardSetupEvent, CardLocation } from './remote-session';
 import { range } from './utils';
 import type { Observable } from 'rxjs';
-import { concat, delay, from, map, mapTo, of, startWith, tap } from 'rxjs';
+import { concat, delay, from, map, of, startWith, switchMap, takeLast, tap, toArray } from 'rxjs';
 
 export enum GameMode {
     LOCAL,
@@ -34,6 +34,7 @@ export interface GameState {
     readonly cards: ReadonlyArray<CardConfig>;
     readonly winner?: number;
     readonly loading?: boolean;
+    readonly boardSetup?: Array<CardLocation>;
 }
 
 interface GameStateHandler<STATE, EVENT> {
@@ -66,7 +67,7 @@ class OneCardFlipped
     extends NoCardFlipped
     implements GameStateHandler<GameState, number>
 {
-    rules(ev: number): Observable<GameStateHandler<GameState, number | BoardSetupEvent | null>> {
+    rules(ev: number): Observable<GameStateHandler<GameState, number | Observable<BoardSetupEvent> | null>> {
         switch (this.state.cards[ev].state) {
             case CardState.HIDDEN:
                 const revealed = [this.state.revealed, ev];
@@ -133,7 +134,7 @@ class TwoCardsFlipped implements GameStateHandler<GameState, null> {
     }
 }
 
-class GameOver implements GameStateHandler<GameState, BoardSetupEvent | null> {
+class GameOver implements GameStateHandler<GameState, Observable<BoardSetupEvent> | null> {
     public readonly state: GameState;
 
     constructor(state: GameState) {
@@ -158,23 +159,39 @@ class GameOver implements GameStateHandler<GameState, BoardSetupEvent | null> {
         };
     }
 
-    rules(setup: BoardSetupEvent | null): Observable<GameStateHandler<GameState, number>> {
-        return from(getInitialState(this.state.numPictures, (this.state.firstPlayer + 1) % this.state.players, setup)).pipe(
+    rules(setup: Observable<BoardSetupEvent | null> | null): Observable<GameStateHandler<GameState, number>> {
+        if( !setup ){
+            setup = from([null]);
+        }
+        return setup.pipe(
+            switchMap(boardSetup =>
+                from(getInitialState(this.state.numPictures, (this.state.firstPlayer + 1) % this.state.players, boardSetup))
+            ),
             map( initialState =>
                 (new NoCardFlipped({
-                   ...initialState.initialState
-               }))
+                    ...initialState.initialState,
+                    boardSetup: initialState.boardSetup.cards
+                }))
             ),
             startWith(new NewGameLoading({
                 ...this.state,
-                winner: undefined,
-                loading: true
-            }))
+            })),
         );
     }
 }
 
-class NewGameLoading extends TwoCardsFlipped implements GameStateHandler<GameState, null> {}
+class NewGameLoading extends TwoCardsFlipped implements GameStateHandler<GameState, null> {
+    public readonly state: GameState;
+
+    constructor(state: GameState) {
+        super(state);
+        this.state = {
+            ...state,
+            loading: true,
+            winner: undefined
+        }
+    }
+}
 
 export type MemoryGameStateHandler = GameStateHandler<GameState, number | void>;
 export type GameStore = Writable<MemoryGameStateHandler>;
@@ -236,9 +253,9 @@ export async function getGameStore(
     };
 }
 
-export function handleGameEvent(event: number | void, state: MemoryGameStateHandler, store: GameStore): Observable<void> {
+export function handleGameEvent(event: number | void, state: MemoryGameStateHandler, store: GameStore): Observable<MemoryGameStateHandler> {
     return state.rules(event).pipe(
         tap(newState => store.set(newState)),
-        mapTo(void 0)
+        takeLast(1) // discard intermediate states
     );
 }
