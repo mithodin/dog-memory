@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onDestroy, onMount } from 'svelte';
     import { t } from 'svelte-i18n';
-    import type { GameStore } from '../services/game';
+    import type { GameStore, MemoryGameStateHandler } from '../services/game';
     import { GameMode, getGameStore, handleGameEvent } from '../services/game';
     import { navigate } from 'svelte-routing';
     import { modalStore } from '../services/modal';
@@ -52,27 +52,13 @@
         }
 
         unsubscribeState = state.subscribe((gameState) => {
-            if (gameState.state?.revealed?.length === 2) {
-                waitingToResolve = true;
-                setTimeout(() => {
-                    handleGameEvent(void 0, gameState, state).subscribe(() => {
-                        waitingToResolve = false;
-                    });
-                }, 1000);
-            }
-            if (gameState.state?.numSolved === gameState.state?.numPictures) {
-                const player1points = gameState.state.cards.filter(
-                    (card) => card.solvedBy === 0
-                ).length;
-                const player2points = gameState.state.cards.filter(
-                    (card) => card.solvedBy === 1
-                ).length;
+            if ( typeof gameState.state.winner === 'number' ) {
                 let gameResult = $t('game.over.draw');
-                if (player1points > player2points) {
+                if ( gameState.state.winner === 0 ) {
                     gameResult = $t('game.over.player1win', {
                         values: { player1Name },
                     });
-                } else if (player2points > player1points) {
+                } else if ( gameState.state.winner === 1 ) {
                     gameResult = $t('game.over.player2win', {
                         values: { player2Name },
                     });
@@ -112,12 +98,7 @@
         cardSelected(index);
     }
 
-    function cardSelected(index: number) {
-        waitingToResolve = true;
-        handleGameEvent(index, $state, state).subscribe(() => {
-            waitingToResolve = false;
-        });
-    }
+    const cardSelected = (index: number) => dispatchGameEvent(index, $state, state);
 
     async function setUpLocalSession() {
         getPlayerNames(
@@ -251,16 +232,23 @@
     }
 
     function newGameLocal(): void {
-
+        dispatchGameEvent(null, $state, state);
     }
 
     function newGameRemote(): void {
 
     }
+
+    function dispatchGameEvent(event: any, state: MemoryGameStateHandler, store: GameStore): void {
+        waitingToResolve = true;
+        handleGameEvent(event, state, store).subscribe(() => {
+            waitingToResolve = false;
+        });
+    }
 </script>
 
 <div class="game">
-    {#if $state}
+    {#if $state && !$state.state.loading }
         <Players
             activePlayer={$state.state.player}
             playerNames={[player1Name, player2Name]}
