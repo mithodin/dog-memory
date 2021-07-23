@@ -2,6 +2,8 @@
     import type { CardConfig } from '../services/game';
     import { createEventDispatcher } from 'svelte';
     import Card from './Card.svelte';
+    import type { Observable } from 'rxjs';
+    import { PlayerCardSelected } from '../services/player';
 
     export let active: boolean = false;
     export let cards: Array<CardConfig> = [];

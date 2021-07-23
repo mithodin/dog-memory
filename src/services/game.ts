@@ -2,9 +2,81 @@ import { Writable, writable } from 'svelte/store';
 import { DogApi } from './random-dog';
 import { shuffleArray } from './shuffle';
 import type { BoardSetupEvent, CardLocation } from './remote-session';
-import { range } from './utils';
+import { createArray, range } from './utils';
 import type { Observable } from 'rxjs';
-import { concat, delay, from, map, of, startWith, switchMap, takeLast, tap, toArray } from 'rxjs';
+import { concat, delay, from, map, of, startWith, switchMap, takeLast, tap } from 'rxjs';
+import type { MemoryPlayer } from './player';
+
+export interface GamePlayer {
+    readonly index: number;
+    readonly name: string;
+}
+
+export interface GameInit {
+    readonly gameCode: string;
+    readonly numPlayers: number;
+    readonly players: Observable<GamePlayer>;
+    readonly playerIndex: number;
+}
+
+export interface GameRoundStart {
+    readonly cards: ReadonlyArray<CardLocation>;
+}
+
+export interface GameRoundEnd {
+    readonly winner: GamePlayer | null;
+}
+
+export interface GameCardRevealed {
+    readonly card: number;
+}
+
+export interface GamePairSolved {
+    readonly cards: [number, number];
+    readonly solvedBy: string;
+}
+
+export interface GameActivePlayer {
+    readonly playerIndex: number;
+}
+
+export interface GamePlayerLeft {
+    readonly playerIndex: number;
+}
+
+export abstract class MemoryGame {
+    protected readonly gameCode = MemoryGame.getEmojiCode();
+
+    constructor(
+        protected readonly players: Array<MemoryPlayer>
+    ) {}
+
+    /**
+     * Generates an emoji code of length 4, using only animals
+     * @param length to keep the probability of collisions below 1/2, the number of active games per second needs to be
+     *               below ( 1/2 + sqrt(45**length + 1/4) ) / 1800
+     *               length = 3 --> 0.17 games/s
+     *               length = 4 --> 1.13 games/s
+     *               length = 5 --> 7.55 games/s
+     */
+    static getEmojiCode(length: number = 4): string {
+        const emoji = createArray(length, () => MemoryGame.getAnimalEmoji());
+        return emoji.join('');
+    }
+
+    private static getAnimalEmoji(): string {
+        const firstAnimal = 0x1f400;
+        const lastAnimal = 0x1f42c;
+        const charCode: number =
+            firstAnimal +
+            Math.floor(Math.random() * (lastAnimal - firstAnimal + 1));
+        return String.fromCodePoint(charCode);
+    }
+
+}
+
+// new ^
+// legacy v
 
 export enum GameMode {
     LOCAL,

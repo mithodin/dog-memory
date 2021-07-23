@@ -9,6 +9,7 @@
         "newGame": "Neues Spiel"
     },
     "query": {
+        "playerName": "Wie heißt du, Spieler*in {playerIndex}?",
         "player1Name": "Name von Spieler*in 1",
         "player2Name": "Name von Spieler*in 2",
         "yourName": "Wie heißt du?",
@@ -33,7 +34,8 @@
             "title": "Spiel beendet",
             "draw": "Unentschieden.",
             "player1win": "{player1Name} hat gewonnen!",
-            "player2win": "{player2Name} hat gewonnen!"
+            "player2win": "{player2Name} hat gewonnen!",
+            "winner": "{playerName} hat gewonnen!"
         }
     }
 }

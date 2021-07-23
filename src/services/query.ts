@@ -1,6 +1,7 @@
 import type { Observable } from 'rxjs';
 import { AsyncSubject, of, switchMap } from 'rxjs';
 import { modalStore } from './modal';
+import type { MessageObject } from 'svelte-i18n/types/runtime/types';
 
 export interface QueryConfig<T extends string> {
     id: T;
@@ -61,16 +62,16 @@ function queryChainImpl<T extends string>(
 }
 
 export function getPlayerName(
-    message: string,
-    button: string
+    message: string | MessageObject,
+    button: string | MessageObject
 ): Observable<string> {
     return queryPlayer(message, null, button);
 }
 
 export function queryPlayer(
-    title: string = '',
-    message: string = null,
-    button: string = '',
+    title: string | MessageObject = '',
+    message: string | MessageObject = null,
+    button: string | MessageObject = '',
     inputValidation?: RegExp
 ): Observable<string> {
     const result = new AsyncSubject<string>();

@@ -1,7 +1,8 @@
 import { createArray } from './utils';
 import type { Observable } from 'rxjs';
-import { BehaviorSubject, filter, ReplaySubject, take } from 'rxjs';
+import { BehaviorSubject, filter, firstValueFrom, from, map, ReplaySubject, take } from 'rxjs';
 import Peer, { DataConnection } from 'peerjs';
+import { MemoryGame } from './game';
 
 interface GameEventCommon<T extends string> {
     type: T;
@@ -133,60 +134,39 @@ export abstract class RemoteSession {
         );
     }
 
-    /**
-     * Generates an emoji code of length 4, using only animals
-     * @param length to keep the probability of collisions below 1/2, the number of active games per second needs to be
-     *               below ( 1/2 + sqrt(45**length + 1/4) ) / 1800
-     *               length = 3 --> 0.17 games/s
-     *               length = 4 --> 1.13 games/s
-     *               length = 5 --> 7.55 games/s
-     */
-    static getEmojiCode(length: number = 4): string {
-        const emoji = createArray(length, () => RemoteSession.getAnimalEmoji());
-        return emoji.join('');
-    }
-
-    private static getAnimalEmoji(): string {
-        const firstAnimal = 0x1f400;
-        const lastAnimal = 0x1f42c;
-        const charCode: number =
-            firstAnimal +
-            Math.floor(Math.random() * (lastAnimal - firstAnimal + 1));
-        return String.fromCodePoint(charCode);
-    }
-
-    static getHostKey(emojiCode: string) {
+    static getHostKey(emojiCode: string): Observable<string> {
         const key = `host@${emojiCode}@memory.deadcrab.de`;
         return RemoteSession.hashKey(key);
     }
 
-    static getGuestKey(emojiCode: string) {
+    static getGuestKey(emojiCode: string): Observable<string> {
         const key = `guest@${emojiCode}@memory.deadcrab.de`;
         return RemoteSession.hashKey(key);
     }
 
-    private static hashKey(key: string): Promise<string> {
+    private static hashKey(key: string): Observable<string> {
         const encoder = new TextEncoder();
-        return window.crypto.subtle
-            .digest('SHA-256', encoder.encode(key))
-            .then((hash) => {
-                const hashArray = Array.from(new Uint8Array(hash));
-                return hashArray
-                    .map((byte) => byte.toString(16).padStart(2, '0'))
-                    .join('');
-            });
+        return from(window.crypto.subtle.digest('SHA-256', encoder.encode(key)))
+            .pipe(
+                map((hash) => {
+                    const hashArray = Array.from(new Uint8Array(hash));
+                    return hashArray
+                        .map((byte) => byte.toString(16).padStart(2, '0'))
+                        .join('');
+                })
+            );
     }
 }
 
 export class RemoteSessionHost extends RemoteSession {
     constructor(
-        private readonly gameCode: string = RemoteSession.getEmojiCode(),
+        private readonly gameCode: string = MemoryGame.getEmojiCode(),
         peer: Peer = null
     ) {
         super();
         let peerPromise = Promise.resolve(peer);
         if (!peer) {
-            peerPromise = RemoteSession.getHostKey(gameCode).then(
+            peerPromise = firstValueFrom(RemoteSession.getHostKey(gameCode)).then(
                 (hostKey) => new Peer(hostKey)
             );
         }
@@ -203,17 +183,17 @@ export class RemoteSessionHost extends RemoteSession {
 
 export class RemoteSessionClient extends RemoteSession {
     constructor(
-        private readonly gameCode: string = RemoteSession.getEmojiCode(),
+        private readonly gameCode: string = MemoryGame.getEmojiCode(),
         peer: Peer = null
     ) {
         super();
         let peerPromise = Promise.resolve(peer);
         if (!peer) {
-            peerPromise = RemoteSession.getGuestKey(gameCode).then(
+            peerPromise = firstValueFrom(RemoteSession.getGuestKey(gameCode)).then(
                 (hostKey) => new Peer(hostKey)
             );
         }
-        Promise.all([peerPromise, RemoteSession.getHostKey(gameCode)]).then(
+        Promise.all([peerPromise, firstValueFrom(RemoteSession.getHostKey(gameCode))]).then(
             ([resolvedPeer, hostKey]) => {
                 resolvedPeer.on('open', () => {
                     const connection = resolvedPeer.connect(hostKey);

@@ -33,7 +33,8 @@
             "title": "game over",
             "draw": "it's a draw",
             "player1win": "{player1Name} won!",
-            "player2win": "{player2Name} won!"
+            "player2win": "{player2Name} won!",
+            "winner": "{playerName} won!"
         }
     }
 }
