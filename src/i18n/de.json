@@ -27,6 +27,7 @@
     "game": {
         "code": "Spielcode",
         "loading": "Lade Bilder...",
+        "playerPlaceholder": "Spieler*in {playerIndex}",
         "player1": "Spieler*in 1",
         "player2": "Spieler*in 2",
         "playerLeft": "Spieler hat das Spiel verlassen",

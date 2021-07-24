@@ -7,9 +7,11 @@ import type {
     GameRoundEnd,
     GameRoundStart
 } from './game';
-import { AsyncSubject, map, mapTo, merge, of, Subject, take } from 'rxjs';
+import { AsyncSubject, map, mapTo, merge, of, Subject, take, tap } from 'rxjs';
 import { modalStore } from './modal';
 import { getPlayerName } from './query';
+
+export type MemoryPlayerEvent = PlayerName | PlayerAck | PlayerCardSelected | PlayerNewRound | PlayerLeave;
 
 export interface PlayerName {
     name: string;
@@ -63,7 +65,7 @@ export interface MemoryGameHeader {
 }
 
 export interface MemoryGameBoard {
-    readonly setup: (event: GameRoundStart) => void;
+    readonly setup: (event: GameRoundStart) => Observable<void>;
     readonly getCardSelection: () => Observable<PlayerCardSelected>;
     readonly revealCard: (event: GameCardRevealed) => void;
     readonly hideCards: () => void;
@@ -135,7 +137,7 @@ export class LocalPlayer implements MemoryPlayer {
         return merge(
             this.playerLeft$.pipe(mapTo(playerLeave())),
             getPlayerName(
-                { id: 'query.playerName', values: { playerIndex: event.playerIndex.toFixed(0) }},
+                { id: 'query.playerName', values: { playerIndex: (event.playerIndex + 1).toFixed(0) }},
                 'action.okay'
             ).pipe(
                 map( name => ({ name }))
@@ -144,14 +146,17 @@ export class LocalPlayer implements MemoryPlayer {
     }
 
     selectCards(): Observable<PlayerCardSelected> {
+        console.log('trying to get cards');
         return this.board.getCardSelection().pipe(
+            tap( ev => console.log('got event', ev)),
             take(2)
         );
     }
 
     startRound(event: GameRoundStart): Observable<PlayerAck> {
-        this.board.setup(event);
-        return of(playerAck());
+        return this.board.setup(event).pipe(
+            mapTo(playerAck())
+        );
     }
 
     activePlayer(event: GameActivePlayer): Observable<PlayerAck> {

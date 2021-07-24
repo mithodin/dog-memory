@@ -3,9 +3,25 @@ import { DogApi } from './random-dog';
 import { shuffleArray } from './shuffle';
 import type { BoardSetupEvent, CardLocation } from './remote-session';
 import { createArray, range } from './utils';
+import type { ObservableResponse } from './utils';
 import type { Observable } from 'rxjs';
-import { concat, delay, from, map, of, startWith, switchMap, takeLast, tap } from 'rxjs';
-import type { MemoryPlayer } from './player';
+import {
+    AsyncSubject,
+    concat,
+    delay, filter,
+    from,
+    map, mapTo,
+    merge,
+    of,
+    ReplaySubject,
+    startWith,
+    switchMap, take,
+    takeLast,
+    tap, toArray
+} from 'rxjs';
+import type { MemoryPlayer, PlayerCardSelected, PlayerLeave, PlayerName } from './player';
+
+export type MemoryGameEvent = GamePlayer | GameInit | GameRoundStart | GameRoundEnd | GameCardRevealed | GamePairSolved | GameActivePlayer | GamePlayerLeft | void;
 
 export interface GamePlayer {
     readonly index: number;
@@ -44,12 +60,114 @@ export interface GamePlayerLeft {
     readonly playerIndex: number;
 }
 
-export abstract class MemoryGame {
-    protected readonly gameCode = MemoryGame.getEmojiCode();
+interface PlayerResponse<Event> {
+    playerIndex: number;
+    event: Event;
+}
+
+export class MemoryGame {
+    private readonly numPlayers: number;
+    private readonly gameCode = MemoryGame.getEmojiCode();
 
     constructor(
-        protected readonly players: Array<MemoryPlayer>
-    ) {}
+        private readonly players: Array<MemoryPlayer>,
+        private readonly numPictures: number = 2
+    ) {
+        this.numPlayers = players.length;
+    }
+
+    public run(): Observable<void> {
+        return this.init()
+            .pipe(
+                switchMap(() => this.startNewRound())
+            );
+    }
+
+    private toAll<Method extends keyof MemoryPlayer>
+    (event: Parameters<MemoryPlayer[Method]>[0], method: Method, individualize: (player: MemoryPlayer, index: number, event: Parameters<MemoryPlayer[Method]>[0]) => Parameters<MemoryPlayer[Method]>[0] = (p,i,ev) => ev): Observable<PlayerResponse<ObservableResponse<MemoryPlayer[Method]>>> {
+        const responses = this.players.map((player, index) => {
+            let payload = individualize(player, index, event);
+            let call: (ev: Parameters<MemoryPlayer[Method]>[0]) => Observable<ObservableResponse<MemoryPlayer[Method]>> = player[method] as any; // it's fine
+            call = call.bind(player);
+            return call(payload).pipe(
+                map( response => ({
+                    playerIndex: index,
+                    event: response
+                })),
+                take(1)
+            );
+        });
+        return merge(...responses);
+    }
+
+    private init(): Observable<void> {
+        const allReady = new AsyncSubject<null>();
+        const nameSubject = new ReplaySubject<GamePlayer>();
+        const init: GameInit = {
+            gameCode: this.gameCode,
+            numPlayers: this.numPlayers,
+            playerIndex: -1,
+            players: nameSubject.asObservable()
+        };
+        const playerResponses = this.toAll(
+                init,
+                'init',
+                (_, i, ev) => ({ ...ev, playerIndex: i})
+            );
+
+        playerResponses.pipe(
+            filter<PlayerResponse<PlayerLeave>>(response => response.event.hasOwnProperty('leave'))
+        ).subscribe( leave => {
+            this.toAll({ playerIndex: leave.playerIndex }, 'playerLeft').subscribe({}); //don't actually care about the responses here
+        });
+
+        playerResponses
+            .pipe(
+                filter<PlayerResponse<PlayerName>>(response => response.event.hasOwnProperty('name'))
+            )
+            .subscribe(
+            {
+                next: response => nameSubject.next({
+                    index: response.playerIndex,
+                    name: response.event.name
+                }),
+                complete: () => {
+                    allReady.next(null);
+                    allReady.complete();
+                }
+            }
+        )
+        return allReady.asObservable();
+    }
+
+    private startNewRound(): Observable<void> {
+        const dogApi = new DogApi(dogApiURL);
+        return from(dogApi.getDogs(this.numPictures)).pipe(
+            map<Array<string>,Array<CardLocation>>( pictureURLs => {
+                const indices = shuffleArray(range(2 * this.numPictures));
+                return pictureURLs.map((url) => ({
+                    url,
+                    indices: [indices.pop(), indices.pop()]
+                }));
+            }),
+            switchMap( cards => this.toAll({ cards }, 'startRound')),
+            toArray(),
+            switchMap( () =>
+                this.getCardsFrom(1)
+            ),
+            switchMap( selected =>
+                this.toAll({ ...selected }, 'cardRevealed')
+            ),
+            mapTo(null)
+        )
+    }
+
+    private getCardsFrom(player: number): Observable<PlayerCardSelected> {
+        return this.toAll({ playerIndex: player }, 'activePlayer').pipe(
+            toArray(),
+            switchMap( () => this.players[player].selectCards())
+        )
+    }
 
     /**
      * Generates an emoji code of length 4, using only animals

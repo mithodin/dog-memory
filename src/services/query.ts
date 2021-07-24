@@ -1,6 +1,6 @@
 import type { Observable } from 'rxjs';
 import { AsyncSubject, of, switchMap } from 'rxjs';
-import { modalStore } from './modal';
+import { modalQueue, modalStore } from './modal';
 import type { MessageObject } from 'svelte-i18n/types/runtime/types';
 
 export interface QueryConfig<T extends string> {
@@ -75,7 +75,7 @@ export function queryPlayer(
     inputValidation?: RegExp
 ): Observable<string> {
     const result = new AsyncSubject<string>();
-    modalStore.set({
+    modalQueue.next({
         title,
         message,
         input: true,

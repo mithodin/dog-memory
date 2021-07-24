@@ -1,40 +1,34 @@
 <script lang="ts">
-    import { onDestroy, onMount } from 'svelte';
-    import { t } from 'svelte-i18n';
-    import type { GameStore, MemoryGameStateHandler } from '../services/game';
-    import { GameMode, getGameStore, handleGameEvent } from '../services/game';
-    import { navigate } from 'svelte-routing';
-    import { modalStore } from '../services/modal';
+    import type { CardConfig, GameCardRevealed, GamePairSolved, GameRoundStart } from '../services/game';
+    import { CardState, GameMode, MemoryGame } from '../services/game';
     import Loading from './Loading.svelte';
-    import { getPlayerName, getPlayerNames, queryChain } from '../services/query';
     import Board from './Board.svelte';
     import Players from './Players.svelte';
-    import type { BoardSetupEvent, HostHelloEvent, RemoteSession } from '../services/remote-session';
-    import {
-        boardSetup,
-        cardClicked,
-        guestHello,
-        hostHello, newGame,
-        ready,
-        RemoteSessionClient,
-        RemoteSessionHost
-    } from '../services/remote-session';
-    import { firstValueFrom, forkJoin, of, switchMap, tap } from 'rxjs';
+    import type { MemoryGameBoard, MemoryGameHeader, PlayerCardSelected } from '../services/player';
+    import { LocalPlayer } from '../services/player';
+    import { Observable, Subject, Subscriber, take } from 'rxjs';
+    import { t } from 'svelte-i18n';
+    import { range } from '../services/utils';
+    import { DogApi } from '../services/random-dog';
 
     export let gameMode: GameMode = GameMode.LOCAL;
     export let numPictures: number = 2;
 
-    let playersReady = false;
-    let localPlayers = [0,1];
+    const dogApiURL = 'https://random.dog/';
+
+    let playerNames = [$t('game.player1'),$t('game.player2')];
+    let activePlayer = 0;
     let gameCode: string = null;
+    let cards: Array<CardConfig> = null;
+    let columns = 2;
+    /* let playersReady = false;
+    let localPlayers = [0,1];
     let remoteSession: RemoteSession = null;
     let state: GameStore;
     let unsubscribeState;
     let unsubscribeRemote;
     let waitingToResolve = false;
     let columns = 2;
-    let player1Name = $t('game.player1');
-    let player2Name = $t('game.player2');
 
     onMount(async () => {
         columns = Math.ceil(Math.sqrt(2 * numPictures));
@@ -266,23 +260,123 @@
             waitingToResolve = false;
         });
     }
+     */
+
+    let clickSubscriber: Subscriber<PlayerCardSelected> = null;
+    let active = false;
+    function userInput(card: number): void {
+        if( clickSubscriber ){
+            clickSubscriber.next({ card })
+        };
+    }
+
+    const boardLoaded: Subject<void> = new Subject<void>();
+    const boardController: MemoryGameBoard = {
+        getCardSelection(): Observable<PlayerCardSelected> {
+            console.log('getting cards...');
+            return new Observable<PlayerCardSelected>((subscriber => {
+                console.log('got subscriber!');
+                active = true;
+                clickSubscriber = subscriber;
+                return () => { clickSubscriber = null; active = false; };
+            }));
+        },
+        hideCards(): void {
+            cards = cards.map( card => ({ ...card, state: CardState.HIDDEN }));
+        },
+        pairSolved(event: GamePairSolved): void {
+            cards = cards.map( (card, index) => (event.cards.includes(index) ? { ...card, state: CardState.SOLVED, solvedBy: event.solvedBy } as CardConfig : card));
+        },
+        revealCard(event: GameCardRevealed): void {
+            cards[event.card] = {
+                ...cards[event.card],
+                state: CardState.REVEALED
+            };
+        },
+        setup(event: GameRoundStart): Observable<void> {
+            const numCards = event.cards.length * 2;
+            columns = Math.ceil(Math.sqrt(numCards));
+            const dogApi = new DogApi(dogApiURL);
+            const myCards = new Array(numCards).fill(null);
+            Promise.all(
+                event.cards.map((picture) =>
+                    dogApi.downloadDog(picture.url).then((localURL) => {
+                        picture.indices.forEach((index) => {
+                            myCards[index] = {
+                                state: CardState.HIDDEN,
+                                pictureURL: localURL
+                            };
+                        });
+                    })
+                )
+            ).then(() => {
+                cards = myCards;
+                boardLoaded.next();
+            });
+            return boardLoaded.pipe(take(1));
+        }
+    };
+
+    const headerController: MemoryGameHeader = {
+        setActivePlayer(index: number): void {
+            activePlayer = index;
+        },
+        setGameCode(code: string): void {
+            gameCode = code;
+        },
+        setNumberOfPlayers(players: number): void {
+            playerNames = range(players).map((index) => $t('game.playerPlaceholder', { values: { playerIndex: index+1 }}));
+        },
+        setPlayerName(name: string, index: number): void {
+            playerNames[index] = name;
+        }
+    };
+
+    // player 2 does not need to implement all functions
+    const boardController2: MemoryGameBoard = {
+        ...boardController,
+        hideCards: () => {},
+        pairSolved: () => {},
+        revealCard: () => {},
+        setup: () => boardLoaded.pipe(take(1))
+    }
+    const headerController2: MemoryGameHeader = {
+        setActivePlayer: () => {},
+        setGameCode: () => {},
+        setNumberOfPlayers: () => {},
+        setPlayerName: () => {}
+    };
+
+    switch(gameMode){
+        case GameMode.LOCAL:
+            setUpLocal();
+            break;
+    }
+
+    function setUpLocal() {
+        const player1 = new LocalPlayer(boardController, headerController);
+        const player2 = new LocalPlayer(boardController2, headerController2);
+
+        const game = new MemoryGame([player1, player2], numPictures);
+        game.run().subscribe({ complete: () => console.log('game is done')});
+    }
 </script>
 
 <div class="game">
-    {#if $state && !$state.state.loading }
-        <Players
-            activePlayer={$state.state.player}
-            playerNames={[player1Name, player2Name]}
-            {gameCode}
-        />
-        <Board
-            cards={$state.state.cards}
-            on:cardSelected={(event) => userInput(event.detail)}
-            active={!waitingToResolve && localPlayers.includes($state.state.player) && playersReady}
-            {columns}
-        />
-    {:else}
+    <Players
+        {activePlayer}
+        {playerNames}
+        {gameCode}
+    />
+    {#if !cards}
         <Loading />
+    {:else}
+        <Board
+            {cards}
+            {active}
+            {columns}
+            on:cardSelected={(event) => userInput(event.detail)}
+        />
     {/if}
 </div>
 

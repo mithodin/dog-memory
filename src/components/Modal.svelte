@@ -1,9 +1,23 @@
 <script lang="ts">
     import { t } from 'svelte-i18n';
-    import { modalStore } from '../services/modal';
+    import { modalQueue, modalStore } from '../services/modal';
     import type { ModalMessage } from '../services/modal';
+    import { Subject } from 'rxjs';
+    import { startWith, map, shareReplay, delayWhen, find } from 'rxjs/operators';
 
     let userInput;
+    const available: Subject<void> = new Subject<void>();
+    const available$ = available
+        .pipe(
+            startWith(null),
+            map((_,i) => i),
+            shareReplay(1)
+        );
+    modalQueue.pipe(
+        delayWhen((_,i) => available$.pipe(find((ev) => ev === i)))
+    ).subscribe((message) => {
+        modalStore.set(message);
+    });
 
     function keyPress(event: KeyboardEvent, message: ModalMessage): void {
         if (event.key === 'Enter') {
@@ -33,6 +47,7 @@
         if (action) {
             action(input);
         }
+        available.next();
     }
 </script>
 
