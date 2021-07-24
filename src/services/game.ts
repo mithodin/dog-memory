@@ -12,7 +12,7 @@ import {
     from,
     map, mapTo,
     merge,
-    of,
+    of, reduce,
     ReplaySubject,
     startWith,
     switchMap, take,
@@ -68,6 +68,7 @@ interface PlayerResponse<Event> {
 export class MemoryGame {
     private readonly numPlayers: number;
     private readonly gameCode = MemoryGame.getEmojiCode();
+    private cardConfig: Array<CardConfig> = null;
 
     constructor(
         private readonly players: Array<MemoryPlayer>,
@@ -150,6 +151,11 @@ export class MemoryGame {
                     indices: [indices.pop(), indices.pop()]
                 }));
             }),
+            tap( cards => {
+               MemoryGame.cardLocationToCardConfig(cards, false).subscribe(cardConfig => {
+                   this.cardConfig = cardConfig;
+               });
+            }),
             switchMap( cards => this.toAll({ cards }, 'startRound')),
             toArray(),
             switchMap( () =>
@@ -166,6 +172,31 @@ export class MemoryGame {
         return this.toAll({ playerIndex: player }, 'activePlayer').pipe(
             toArray(),
             switchMap( () => this.players[player].selectCards())
+        )
+    }
+
+    static cardLocationToCardConfig(cardLocations: ReadonlyArray<CardLocation>, download: boolean): Observable<Array<CardConfig>> {
+        const numCards = cardLocations.length * 2;
+        const dogApi = new DogApi(dogApiURL);
+        return merge(
+            ...cardLocations.map(card =>
+                (download ? from(dogApi.downloadDog(card.url)): of(card.url)).pipe(
+                    map(url => ({
+                        url,
+                        indices: card.indices
+                    }))
+                )
+            )
+        ).pipe(
+            reduce((cards, location) => {
+                    location.indices.forEach((index) => cards[index] = {
+                        state: CardState.HIDDEN,
+                        pictureURL: location.url
+                    });
+                    return cards;
+                },
+                createArray(numCards, () => null)
+            )
         )
     }
 
@@ -190,11 +221,7 @@ export class MemoryGame {
             Math.floor(Math.random() * (lastAnimal - firstAnimal + 1));
         return String.fromCodePoint(charCode);
     }
-
 }
-
-// new ^
-// legacy v
 
 export enum GameMode {
     LOCAL,
@@ -214,6 +241,9 @@ export enum CardState {
     SOLVED,
 }
 
+// new ^
+// legacy v
+
 export interface GameState {
     readonly revealed: number | null;
     readonly players: number;
@@ -227,15 +257,15 @@ export interface GameState {
     readonly boardSetup?: Array<CardLocation>;
 }
 
-interface GameStateHandler<STATE, EVENT> {
+interface GameStateHandler<STATE, EVENT, NEW_STATE extends GameStateHandler<STATE, any, any> = GameStateHandler<STATE, any, any>> {
     readonly state: STATE;
-    rules: (ev: EVENT) => Observable<GameStateHandler<STATE, any>>;
+    rules: (ev: EVENT) => Observable<NEW_STATE>;
 }
 
-class NoCardFlipped implements GameStateHandler<GameState, number> {
+class NoCardFlipped implements GameStateHandler<GameState, number, NoCardFlipped | OneCardFlipped> {
     constructor(public readonly state: GameState) {}
 
-    rules(ev: number): Observable<GameStateHandler<GameState, number>> {
+    rules(ev: number): Observable<NoCardFlipped | OneCardFlipped> {
         switch (this.state.cards[ev].state) {
             case CardState.HIDDEN:
                 return of(new OneCardFlipped({
@@ -253,11 +283,11 @@ class NoCardFlipped implements GameStateHandler<GameState, number> {
     }
 }
 
-class OneCardFlipped
-    extends NoCardFlipped
-    implements GameStateHandler<GameState, number>
+class OneCardFlipped implements GameStateHandler<GameState, number, NoCardFlipped | OneCardFlipped | TwoCardsFlipped | GameOver>
 {
-    rules(ev: number): Observable<GameStateHandler<GameState, number | Observable<BoardSetupEvent> | null>> {
+    constructor(public readonly state: GameState) {}
+
+    rules(ev: number): Observable<NoCardFlipped | OneCardFlipped | TwoCardsFlipped | GameOver> {
         switch (this.state.cards[ev].state) {
             case CardState.HIDDEN:
                 const revealed = [this.state.revealed, ev];
@@ -281,8 +311,7 @@ class OneCardFlipped
                     if( this.state.numSolved + 1 === this.state.numPictures ){
                        return of(new GameOver(newState));
                     }
-                    return of(
-                        new NoCardFlipped(newState));
+                    return of(new NoCardFlipped(newState));
                 }
                 return concat(
                     of(new TwoCardsFlipped({
@@ -316,15 +345,15 @@ class OneCardFlipped
 /**
  * Intermediate dummy state. Doesn't react to any events.
  */
-class TwoCardsFlipped implements GameStateHandler<GameState, null> {
+class TwoCardsFlipped implements GameStateHandler<GameState, TwoCardsFlipped> {
     constructor(public readonly state: GameState) {}
 
-    rules(_: null): Observable<GameStateHandler<GameState, null>> {
+    rules(_: null): Observable<TwoCardsFlipped> {
         return of(this);
     }
 }
 
-class GameOver implements GameStateHandler<GameState, Observable<BoardSetupEvent> | null> {
+class GameOver implements GameStateHandler<GameState, Observable<BoardSetupEvent> | null, NoCardFlipped | NewGameLoading> {
     public readonly state: GameState;
 
     constructor(state: GameState) {
@@ -349,7 +378,7 @@ class GameOver implements GameStateHandler<GameState, Observable<BoardSetupEvent
         };
     }
 
-    rules(setup: Observable<BoardSetupEvent | null> | null): Observable<GameStateHandler<GameState, number>> {
+    rules(setup: Observable<BoardSetupEvent | null> | null): Observable<NoCardFlipped | NewGameLoading> {
         if( !setup ){
             setup = from([null]);
         }

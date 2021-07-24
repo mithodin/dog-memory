@@ -9,12 +9,9 @@
     import { Observable, Subject, Subscriber, take } from 'rxjs';
     import { t } from 'svelte-i18n';
     import { range } from '../services/utils';
-    import { DogApi } from '../services/random-dog';
 
     export let gameMode: GameMode = GameMode.LOCAL;
     export let numPictures: number = 2;
-
-    const dogApiURL = 'https://random.dog/';
 
     let playerNames = [$t('game.player1'),$t('game.player2')];
     let activePlayer = 0;
@@ -267,7 +264,7 @@
     function userInput(card: number): void {
         if( clickSubscriber ){
             clickSubscriber.next({ card })
-        };
+        }
     }
 
     const boardLoaded: Subject<void> = new Subject<void>();
@@ -296,21 +293,8 @@
         setup(event: GameRoundStart): Observable<void> {
             const numCards = event.cards.length * 2;
             columns = Math.ceil(Math.sqrt(numCards));
-            const dogApi = new DogApi(dogApiURL);
-            const myCards = new Array(numCards).fill(null);
-            Promise.all(
-                event.cards.map((picture) =>
-                    dogApi.downloadDog(picture.url).then((localURL) => {
-                        picture.indices.forEach((index) => {
-                            myCards[index] = {
-                                state: CardState.HIDDEN,
-                                pictureURL: localURL
-                            };
-                        });
-                    })
-                )
-            ).then(() => {
-                cards = myCards;
+            MemoryGame.cardLocationToCardConfig(event.cards, true).subscribe( loadedCards => {
+                cards = loadedCards;
                 boardLoaded.next();
             });
             return boardLoaded.pipe(take(1));
