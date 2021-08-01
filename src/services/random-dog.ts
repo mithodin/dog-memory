@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { createArray } from './utils';
+import { createArray } from '../utils/utils';
 
 export class DogApi {
     private readonly api: AxiosInstance;

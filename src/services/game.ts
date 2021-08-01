@@ -2,24 +2,25 @@ import { Writable, writable } from 'svelte/store';
 import { DogApi } from './random-dog';
 import { shuffleArray } from './shuffle';
 import type { BoardSetupEvent, CardLocation } from './remote-session';
-import { createArray, range } from './utils';
-import type { ObservableResponse } from './utils';
+import { createArray, range } from '../utils/utils';
+import type { ObservableResponse } from '../utils/utils';
 import type { Observable } from 'rxjs';
 import {
     AsyncSubject,
     concat,
-    delay, filter,
-    from,
+    delay, EMPTY, filter,
+    from, last,
     map, mapTo,
     merge,
     of, reduce,
     ReplaySubject,
-    startWith,
+    startWith, Subject,
     switchMap, take,
-    takeLast,
+    takeLast, takeUntil,
     tap, toArray
 } from 'rxjs';
 import type { MemoryPlayer, PlayerCardSelected, PlayerLeave, PlayerName } from './player';
+import { waitUntilNextReady } from '../utils/wait-until-next-ready';
 
 export type MemoryGameEvent = GamePlayer | GameInit | GameRoundStart | GameRoundEnd | GameCardRevealed | GamePairSolved | GameActivePlayer | GamePlayerLeft | void;
 
@@ -49,7 +50,7 @@ export interface GameCardRevealed {
 
 export interface GamePairSolved {
     readonly cards: [number, number];
-    readonly solvedBy: string;
+    readonly solvedBy: number;
 }
 
 export interface GameActivePlayer {
@@ -65,22 +66,43 @@ interface PlayerResponse<Event> {
     event: Event;
 }
 
+interface TurnOver {
+    over: boolean;
+}
+
 export class MemoryGame {
     private readonly numPlayers: number;
+    private readonly playerNames: Array<string>;
     private readonly gameCode = MemoryGame.getEmojiCode();
-    private cardConfig: Array<CardConfig> = null;
 
     constructor(
         private readonly players: Array<MemoryPlayer>,
         private readonly numPictures: number = 2
     ) {
         this.numPlayers = players.length;
+        this.playerNames = new Array<string>(this.numPlayers).fill(null);
     }
 
     public run(): Observable<void> {
+        let firstPlayer = Math.floor(Math.random()*this.numPlayers);
+        const newRound: Subject<void> = new Subject<void>();
         return this.init()
             .pipe(
-                switchMap(() => this.startNewRound())
+                switchMap(() => newRound.pipe(
+                    startWith(null),
+                    map( (_,i) => (firstPlayer + i)%this.numPlayers)
+                )),
+                switchMap((startPlayer) => this.startNewRound(startPlayer)),
+                switchMap( (roundResult) => this.roundEnd(roundResult)),
+                tap( startNewRound => {
+                    if(startNewRound){
+                        newRound.next();
+                    } else {
+                        newRound.complete();
+                    }
+                }),
+                filter( (newRound) => !newRound),
+                mapTo(null)
             );
     }
 
@@ -124,7 +146,10 @@ export class MemoryGame {
 
         playerResponses
             .pipe(
-                filter<PlayerResponse<PlayerName>>(response => response.event.hasOwnProperty('name'))
+                filter<PlayerResponse<PlayerName>>(response => response.event.hasOwnProperty('name')),
+                tap( response => {
+                    this.playerNames[response.playerIndex] = response.event.name;
+                })
             )
             .subscribe(
             {
@@ -141,8 +166,9 @@ export class MemoryGame {
         return allReady.asObservable();
     }
 
-    private startNewRound(): Observable<void> {
+    private startNewRound(firstPlayer: number): Observable<{ winner?: number }> {
         const dogApi = new DogApi(dogApiURL);
+        let cardConfiguration: Array<CardConfig> = null;
         return from(dogApi.getDogs(this.numPictures)).pipe(
             map<Array<string>,Array<CardLocation>>( pictureURLs => {
                 const indices = shuffleArray(range(2 * this.numPictures));
@@ -153,19 +179,117 @@ export class MemoryGame {
             }),
             tap( cards => {
                MemoryGame.cardLocationToCardConfig(cards, false).subscribe(cardConfig => {
-                   this.cardConfig = cardConfig;
+                   cardConfiguration = cardConfig;
                });
             }),
             switchMap( cards => this.toAll({ cards }, 'startRound')),
             toArray(),
             switchMap( () =>
-                this.getCardsFrom(1)
-            ),
-            switchMap( selected =>
-                this.toAll({ ...selected }, 'cardRevealed')
-            ),
-            mapTo(null)
+               this.runGameRound(cardConfiguration, firstPlayer)
+            )
         )
+    }
+
+    private runGameRound(cards: Array<CardConfig>, firstPlayer: number): Observable<{ winner?: number }> {
+        const turns: Subject<void> = new Subject<void>();
+        return turns.pipe(
+            startWith(null),
+            map((_,i) => (firstPlayer + i) % this.numPlayers ),
+            switchMap( activePlayer => this.runTurn(activePlayer, cards)),
+            map( () => {
+                const gameOver = this.allCardsSolved(cards);
+                if( gameOver ){
+                    turns.complete();
+
+                    const points = this.getPlayerPoints(cards);
+                    const max = Math.max(...points);
+                    const winners = points.reduce((winners, points, index) => {
+                        if( points === max ){
+                            winners.push(index);
+                        }
+                        return winners;
+                    }, []);
+                    if( winners.length === 1 ){
+                        return { winner: winners[0] };
+                    } else {
+                        return {}
+                    }
+                } else {
+                    turns.next();
+                    return {}
+                }
+            }),
+            last(),
+        )
+    }
+
+    private getPlayerPoints(cards: Array<CardConfig>) {
+        return cards.reduce((points, card) => {
+            points[card.solvedBy] += 1;
+            return points;
+        }, new Array(this.numPlayers).fill(0));
+    }
+
+    private allCardsSolved(cards: Array<CardConfig>) {
+        return cards.filter(card => card.state === CardState.SOLVED).length === cards.length;
+    }
+
+    private runTurn(activePlayer: number, cards: Array<CardConfig>): Observable<TurnOver> {
+        let selectedIndices: Array<number> = [];
+        const cardProcessed$: Subject<void> = new Subject<void>();
+        const turnOver$: AsyncSubject<void> = new AsyncSubject<void>();
+        return this.getCardsFrom(activePlayer).pipe(
+            waitUntilNextReady(cardProcessed$),
+            takeUntil(turnOver$),
+            filter(selected => cards[selected.card].state === CardState.HIDDEN),
+            tap(selected => {
+                cards[selected.card].state = CardState.REVEALED;
+                selectedIndices.push(selected.card);
+            }),
+            switchMap( selected => this.toAll({ card: selected.card }, 'cardRevealed').pipe(toArray())),
+            switchMap( () => {
+                if( selectedIndices.length === 1 ){
+                    cardProcessed$.next();
+                    return EMPTY;
+                }
+                if( selectedIndices.length === 2 ){
+                    const selectedCards = selectedIndices.map(sel => cards[sel]);
+                    if( selectedCards[0].pictureURL === selectedCards[1].pictureURL ){
+                        selectedCards[0].state = CardState.SOLVED;
+                        selectedCards[1].state = CardState.SOLVED;
+                        selectedCards[0].solvedBy = activePlayer;
+                        selectedCards[1].solvedBy = activePlayer;
+                        const turnOver = this.allCardsSolved(cards);
+                        return this.toAll({ cards: selectedIndices as [number, number], solvedBy: activePlayer }, 'cardsSolved').pipe(toArray(),mapTo({ over: turnOver}))
+                    } else {
+                        selectedCards[0].state = CardState.HIDDEN;
+                        selectedCards[1].state = CardState.HIDDEN;
+                        return of(null).pipe(
+                            delay(1500),
+                            switchMap(() => this.toAll(undefined, 'cardsHidden').pipe(toArray(), mapTo({ over: true })))
+                        );
+                    }
+                }
+                return EMPTY;
+            }),
+            tap((turnOver) => {
+                selectedIndices = [];
+                if( turnOver.over ){
+                    turnOver$.next();
+                    turnOver$.complete();
+                }
+                cardProcessed$.next();
+            }),
+            filter( turnOver => turnOver.over )
+        );
+    }
+
+    private roundEnd(result: {winner?: number}): Observable<boolean> {
+        const event = result.hasOwnProperty('winner') ? { winner: { index: result.winner, name: this.playerNames[result.winner] } } : { winner: null };
+        return this.toAll(event, 'endRound').pipe(
+            toArray(),
+            map( responses => responses.length === this.numPlayers )
+        );
     }
 
     private getCardsFrom(player: number): Observable<PlayerCardSelected> {
@@ -231,8 +355,8 @@ export enum GameMode {
 
 export interface CardConfig {
     readonly pictureURL: string;
-    readonly state: CardState;
-    readonly solvedBy?: number;
+    state: CardState;
+    solvedBy?: number;
 }
 
 export enum CardState {

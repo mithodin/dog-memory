@@ -9,8 +9,7 @@
         "newGame": "new game"
     },
     "query": {
-        "player1Name": "first player's name",
-        "player2Name": "second player's name",
+        "playerName": "What's your name, player {playerIndex}?",
         "yourName": "What's your name?",
         "gameCode": "Enter your game code",
         "ready": "Ready to play?"
@@ -26,14 +25,11 @@
     "game": {
         "code": "game code",
         "loading": "Loading...",
-        "player1": "player 1",
-        "player2": "player 2",
+        "playerPlaceholder": "player {playerIndex}",
         "playerLeft": "player left the game",
         "over": {
             "title": "game over",
             "draw": "it's a draw",
-            "player1win": "{player1Name} won!",
-            "player2win": "{player2Name} won!",
             "winner": "{playerName} won!"
         }
     }

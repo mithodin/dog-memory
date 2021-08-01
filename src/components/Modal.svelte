@@ -3,18 +3,12 @@
     import { modalQueue, modalStore } from '../services/modal';
     import type { ModalMessage } from '../services/modal';
     import { Subject } from 'rxjs';
-    import { startWith, map, shareReplay, delayWhen, find } from 'rxjs/operators';
+    import { waitUntilNextReady } from '../utils/wait-until-next-ready';
 
     let userInput;
     const available: Subject<void> = new Subject<void>();
-    const available$ = available
-        .pipe(
-            startWith(null),
-            map((_,i) => i),
-            shareReplay(1)
-        );
     modalQueue.pipe(
-        delayWhen((_,i) => available$.pipe(find((ev) => ev === i)))
+        waitUntilNextReady(available)
     ).subscribe((message) => {
         modalStore.set(message);
     });

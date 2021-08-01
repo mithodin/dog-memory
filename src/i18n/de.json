@@ -10,8 +10,6 @@
     },
     "query": {
         "playerName": "Wie heißt du, Spieler*in {playerIndex}?",
-        "player1Name": "Name von Spieler*in 1",
-        "player2Name": "Name von Spieler*in 2",
         "yourName": "Wie heißt du?",
         "gameCode": "Gib einen Spielcode ein",
         "ready": "Bereit?"
@@ -28,14 +26,10 @@
         "code": "Spielcode",
         "loading": "Lade Bilder...",
         "playerPlaceholder": "Spieler*in {playerIndex}",
-        "player1": "Spieler*in 1",
-        "player2": "Spieler*in 2",
         "playerLeft": "Spieler hat das Spiel verlassen",
         "over": {
             "title": "Spiel beendet",
             "draw": "Unentschieden.",
-            "player1win": "{player1Name} hat gewonnen!",
-            "player2win": "{player2Name} hat gewonnen!",
             "winner": "{playerName} hat gewonnen!"
         }
     }

@@ -1,6 +1,6 @@
 import type { Observable } from 'rxjs';
-import { AsyncSubject, of, switchMap } from 'rxjs';
-import { modalQueue, modalStore } from './modal';
+import { AsyncSubject, map, of, switchMap } from 'rxjs';
+import { modalQueue } from './modal';
 import type { MessageObject } from 'svelte-i18n/types/runtime/types';
 
 export interface QueryConfig<T extends string> {
@@ -16,79 +16,43 @@ export interface PlayerNames {
     player2Name: string;
 }
 
-export function getPlayerNames(
-    player1Message: string,
-    player2Message: string,
-    button: string
-): Observable<PlayerNames> {
-    return queryChain([
-        {
-            id: 'player1Name',
-            title: player1Message,
-            button,
-        },
-        {
-            id: 'player2Name',
-            title: player2Message,
-            button,
-        },
-    ]);
-}
-
-export function queryChain<T extends string>(
-    queries: Array<QueryConfig<T>>
-): Observable<Record<T, string>> {
-    return queryChainImpl<T>(queries, {});
-}
-
-function queryChainImpl<T extends string>(
-    queries: Array<QueryConfig<T>>,
-    previousResults: Partial<Record<T, string>>
-): Observable<Record<T, string>> {
-    if (queries.length === 0) {
-        return of(previousResults as Record<T, string>);
-    }
-    const [query, ...rest] = queries;
-    return queryPlayer(
-        query.title,
-        query.message,
-        query.button,
-        query.inputValidation
-    ).pipe(
-        switchMap((result) =>
-            queryChainImpl<T>(rest, { ...previousResults, [query.id]: result })
-        )
-    );
+interface PlayerAnswer {
+    input: string,
+    buttonClicked: number;
 }
 
 export function getPlayerName(
     message: string | MessageObject,
     button: string | MessageObject
 ): Observable<string> {
-    return queryPlayer(message, null, button);
+    return queryPlayer(message, null, button, true).pipe(
+        map( answer => answer.input)
+    );
 }
 
 export function queryPlayer(
     title: string | MessageObject = '',
     message: string | MessageObject = null,
-    button: string | MessageObject = '',
+    button: string | MessageObject | Array<string | MessageObject> = '',
+    input: boolean = true,
     inputValidation?: RegExp
-): Observable<string> {
-    const result = new AsyncSubject<string>();
+): Observable<PlayerAnswer> {
+    const result = new AsyncSubject<PlayerAnswer>();
+    const buttons = (Array.isArray(button) ? button : [button]).map(
+        (buttonLabel, index) => ({
+            label: buttonLabel,
+            action: (answer) => {
+                result.next({ input: answer, buttonClicked: index });
+                result.complete();
+            }
+        })
+    );
     modalQueue.next({
         title,
         message,
-        input: true,
+        input,
         inputValidation,
-        buttons: [
-            {
-                label: button,
-                action: (name) => {
-                    result.next(name);
-                    result.complete();
-                },
-            },
-        ],
+        buttons
     });
     return result.asObservable();
 }

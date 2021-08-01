@@ -4,11 +4,14 @@
     import Loading from './Loading.svelte';
     import Board from './Board.svelte';
     import Players from './Players.svelte';
-    import type { MemoryGameBoard, MemoryGameHeader, PlayerCardSelected } from '../services/player';
+    import type { MemoryGameBoard, MemoryGameHeader, MemoryGameModal, PlayerCardSelected } from '../services/player';
     import { LocalPlayer } from '../services/player';
-    import { Observable, Subject, Subscriber, take } from 'rxjs';
+    import { Observable, of, Subject, Subscriber, take } from 'rxjs';
     import { t } from 'svelte-i18n';
-    import { range } from '../services/utils';
+    import { range } from '../utils/utils';
+    import { getPlayerName, queryPlayer } from '../services/query';
+    import { map } from 'rxjs/operators';
+    import { navigate } from 'svelte-routing';
 
     export let gameMode: GameMode = GameMode.LOCAL;
     export let numPictures: number = 2;
@@ -270,16 +273,14 @@
     const boardLoaded: Subject<void> = new Subject<void>();
     const boardController: MemoryGameBoard = {
         getCardSelection(): Observable<PlayerCardSelected> {
-            console.log('getting cards...');
             return new Observable<PlayerCardSelected>((subscriber => {
-                console.log('got subscriber!');
                 active = true;
                 clickSubscriber = subscriber;
                 return () => { clickSubscriber = null; active = false; };
             }));
         },
         hideCards(): void {
-            cards = cards.map( card => ({ ...card, state: CardState.HIDDEN }));
+            cards = cards.map( card => (card.state === CardState.SOLVED ? card : { ...card, state: CardState.HIDDEN }));
         },
         pairSolved(event: GamePairSolved): void {
             cards = cards.map( (card, index) => (event.cards.includes(index) ? { ...card, state: CardState.SOLVED, solvedBy: event.solvedBy } as CardConfig : card));
@@ -291,6 +292,7 @@
             };
         },
         setup(event: GameRoundStart): Observable<void> {
+            cards = null;
             const numCards = event.cards.length * 2;
             columns = Math.ceil(Math.sqrt(numCards));
             MemoryGame.cardLocationToCardConfig(event.cards, true).subscribe( loadedCards => {
@@ -315,6 +317,27 @@
             playerNames[index] = name;
         }
     };
+    const modalController: MemoryGameModal = {
+        getName: (playerIndex: number) =>
+            getPlayerName(
+                { id: 'query.playerName', values: { playerIndex: (playerIndex + 1).toFixed(0) }},
+                'action.okay'
+            ),
+        getNewRound: (event) =>
+            queryPlayer(
+                'game.over.title',
+                {
+                    id: event.winner ? 'game.over.winner' : 'game.over.draw',
+                    values: {
+                        playerName: event.winner?.name
+                    }
+                },
+                [ 'action.newGame', 'action.close'],
+                false
+            ).pipe(
+                map(answer => answer.buttonClicked === 0)
+            )
+    };
 
     // player 2 does not need to implement all functions
     const boardController2: MemoryGameBoard = {
@@ -330,6 +353,10 @@
         setNumberOfPlayers: () => {},
         setPlayerName: () => {}
     };
+    const modalController2: MemoryGameModal = {
+        ...modalController,
+        getNewRound: () => of(true)
+    };
 
     switch(gameMode){
         case GameMode.LOCAL:
@@ -338,11 +365,11 @@
     }
 
     function setUpLocal() {
-        const player1 = new LocalPlayer(boardController, headerController);
-        const player2 = new LocalPlayer(boardController2, headerController2);
+        const player1 = new LocalPlayer(boardController, headerController, modalController);
+        const player2 = new LocalPlayer(boardController2, headerController2, modalController2);
 
         const game = new MemoryGame([player1, player2], numPictures);
-        game.run().subscribe({ complete: () => console.log('game is done')});
+        game.run().subscribe({ complete: () => {navigate('/');}});
     }
 </script>
 

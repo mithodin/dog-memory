@@ -7,7 +7,7 @@ import type {
     GameRoundEnd,
     GameRoundStart
 } from './game';
-import { AsyncSubject, map, mapTo, merge, of, Subject, take, tap } from 'rxjs';
+import { AsyncSubject, filter, map, mapTo, merge, of, ReplaySubject, Subject, take, tap } from 'rxjs';
 import { modalStore } from './modal';
 import { getPlayerName } from './query';
 
@@ -58,27 +58,33 @@ export interface MemoryPlayer {
 }
 
 export interface MemoryGameHeader {
-    readonly setNumberOfPlayers: (players: number) => void;
-    readonly setPlayerName: (name: string, index: number) => void;
-    readonly setActivePlayer: (index: number) => void;
-    readonly setGameCode: (code: string) => void;
+    setNumberOfPlayers(players: number): void;
+    setPlayerName(name: string, index: number): void;
+    setActivePlayer(index: number): void;
+    setGameCode(code: string): void;
 }
 
 export interface MemoryGameBoard {
-    readonly setup: (event: GameRoundStart) => Observable<void>;
-    readonly getCardSelection: () => Observable<PlayerCardSelected>;
-    readonly revealCard: (event: GameCardRevealed) => void;
-    readonly hideCards: () => void;
-    readonly pairSolved: (event: GamePairSolved) => void;
+    setup(event: GameRoundStart): Observable<void>;
+    getCardSelection(): Observable<PlayerCardSelected>;
+    revealCard(event: GameCardRevealed): void;
+    hideCards(): void;
+    pairSolved(event: GamePairSolved): void;
+}
+
+export interface MemoryGameModal {
+    getName(playerIndex: number): Observable<string>;
+    getNewRound(event: GameRoundEnd): Observable<boolean>;
 }
 
 export class LocalPlayer implements MemoryPlayer {
     private readonly playerLeft$ = new AsyncSubject<void>();
-    private readonly playerIndex$ = new Subject<number>();
+    private readonly playerIndex$ = new ReplaySubject<number>(1);
 
     constructor(
         private readonly board: MemoryGameBoard,
-        private readonly header: MemoryGameHeader
+        private readonly header: MemoryGameHeader,
+        private readonly modal: MemoryGameModal
     ) {}
 
     cardRevealed(revealed: GameCardRevealed): Observable<PlayerAck> {
@@ -97,34 +103,14 @@ export class LocalPlayer implements MemoryPlayer {
     }
 
     endRound(event: GameRoundEnd): Observable<PlayerNewRound> {
-        const result$ = new AsyncSubject<void>();
-        const message = event.winner ? 'game.over.winner' : 'game.over.draw';
-        modalStore.set({
-            title: 'game.over.title',
-            message: {
-                id: message,
-                values: {
-                    playerName: event.winner.name
+        return this.modal.getNewRound(event).pipe(
+            tap( newRound => {
+                if( !newRound ){
+                    this.playerLeft$.next();
+                    this.playerLeft$.complete();
                 }
-            },
-            buttons: [
-                {
-                    label: 'action.newGame',
-                    action: () => {
-                        result$.next();
-                        result$.complete();
-                    },
-                },
-                {
-                    label: 'action.close',
-                    action: () => {
-                        this.playerLeft$.next();
-                        this.playerLeft$.complete();
-                    },
-                }
-            ]
-        });
-        return result$.pipe(
+            }),
+            filter( newRound => newRound ),
             mapTo(playerNewRound())
         );
     }
@@ -136,21 +122,15 @@ export class LocalPlayer implements MemoryPlayer {
         this.playerIndex$.next(event.playerIndex);
         return merge(
             this.playerLeft$.pipe(mapTo(playerLeave())),
-            getPlayerName(
-                { id: 'query.playerName', values: { playerIndex: (event.playerIndex + 1).toFixed(0) }},
-                'action.okay'
-            ).pipe(
+            this.modal.getName(event.playerIndex)
+            .pipe(
                 map( name => ({ name }))
             )
         );
     }
 
     selectCards(): Observable<PlayerCardSelected> {
-        console.log('trying to get cards');
-        return this.board.getCardSelection().pipe(
-            tap( ev => console.log('got event', ev)),
-            take(2)
-        );
+        return this.board.getCardSelection().pipe();
     }
 
     startRound(event: GameRoundStart): Observable<PlayerAck> {
@@ -165,6 +145,7 @@ export class LocalPlayer implements MemoryPlayer {
     }
 
     playerLeft(event: GamePlayerLeft): Observable<PlayerAck> {
+        console.log(`player ${event.playerIndex} left the game`);
         return of(playerAck());
     }
 }

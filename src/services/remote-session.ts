@@ -1,4 +1,4 @@
-import { createArray } from './utils';
+import { createArray } from '../utils/utils';
 import type { Observable } from 'rxjs';
 import { BehaviorSubject, filter, firstValueFrom, from, map, ReplaySubject, take } from 'rxjs';
 import Peer, { DataConnection } from 'peerjs';
