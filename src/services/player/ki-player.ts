@@ -137,7 +137,7 @@ export class KIPlayer implements MemoryPlayer {
     }
 
     startRound(event: GameRoundStart): Observable<PlayerAck> {
-        return MemoryGame.cardLocationToCardConfig(event.cards, false).pipe(
+        return MemoryGame.cardLocationToCardConfig(event.cards.map((card,i) => ({ ...card, url: `${i}` })), false).pipe(
             tap( cards => {
                 this.cards = cards.map( (card, i) => ({ ...card, index: i }));
                 this.memory = [];
