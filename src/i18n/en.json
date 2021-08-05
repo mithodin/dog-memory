@@ -1,6 +1,7 @@
 {
     "action": {
         "play": "play locally",
+        "playKi": "play vs AI",
         "close": "close",
         "okay": "ok",
         "join": "join game",

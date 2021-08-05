@@ -1,6 +1,7 @@
 {
     "action": {
         "play": "lokales Spiel",
+        "playKi": "gegen Computer spielen",
         "close": "schließen",
         "okay": "ok",
         "join": "Spiel beitreten",

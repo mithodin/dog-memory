@@ -5,18 +5,20 @@
     import Board from './Board.svelte';
     import Players from './Players.svelte';
     import type { MemoryGameBoard, MemoryGameHeader, MemoryGameModal, PlayerCardSelected } from '../services/player';
-    import { LocalPlayer } from '../services/player';
     import { Observable, of, Subject, Subscriber, take } from 'rxjs';
     import { t } from 'svelte-i18n';
     import { range } from '../utils/utils';
     import { getPlayerName, queryPlayer } from '../services/query';
     import { map } from 'rxjs/operators';
     import { navigate } from 'svelte-routing';
+    import { LocalPlayer } from '../services/player';
+    import { onMount } from 'svelte';
+    import { KIPlayer } from '../services/player/ki-player';
 
     export let gameMode: GameMode = GameMode.LOCAL;
     export let numPictures: number = 2;
 
-    let playerNames = [$t('game.player1'),$t('game.player2')];
+    let playerNames = [$t('game.playerPlaceholder', { values: { playerIndex: 1 }}),$t('game.playerPlaceholder', { values: { playerIndex: 2 }})];
     let activePlayer = 0;
     let gameCode: string = null;
     let cards: Array<CardConfig> = null;
@@ -118,19 +120,34 @@
         getNewRound: () => of(true)
     };
 
-    switch(gameMode){
-        case GameMode.LOCAL:
-            setUpLocal();
-            break;
-    }
-
-    function setUpLocal() {
+    function setUpLocal(): MemoryGame {
         const player1 = new LocalPlayer(boardController, headerController, modalController);
         const player2 = new LocalPlayer(boardController2, headerController2, modalController2);
 
-        const game = new MemoryGame([player1, player2], numPictures);
-        game.run().subscribe({ complete: () => {navigate('/');}});
+        return new MemoryGame([player1, player2], numPictures);
     }
+
+    function setUpKI(): MemoryGame {
+        const player1 = new LocalPlayer(boardController, headerController, modalController);
+        const player2 = new KIPlayer();
+
+        return new MemoryGame([player1, player2], numPictures);
+    }
+
+    onMount(() => {
+        let game: MemoryGame = null;
+        switch(gameMode){
+            case GameMode.LOCAL:
+                game = setUpLocal();
+                break;
+            case GameMode.KI:
+                game = setUpKI();
+                break;
+        }
+        if( game ){
+            game.run().subscribe({ complete: () => {navigate('/');}});
+        }
+    });
 </script>
 
 <div class="game">

@@ -18,6 +18,9 @@
         <Route path="play">
             <Game numPictures={6} gameMode={GameMode.LOCAL} />
         </Route>
+        <Route path="ki">
+            <Game numPictures={6} gameMode={GameMode.KI} />
+        </Route>
         <Route path="join">
             <Game numPictures={6} gameMode={GameMode.JOIN} />
         </Route>
@@ -30,6 +33,12 @@
                     <div class="play">
                         <img src={playIcon} alt={$t('action.play')} />
                         <span class="text">{$t('action.play')}</span>
+                    </div>
+                </Link>
+                <Link to="ki">
+                    <div class="play">
+                        <img src={playIcon} alt={$t('action.playKi')} />
+                        <span class="text">{$t('action.playKi')}</span>
                     </div>
                 </Link>
                 <Link to="join">

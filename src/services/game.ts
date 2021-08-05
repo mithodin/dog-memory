@@ -351,6 +351,7 @@ export enum GameMode {
     LOCAL,
     HOST,
     JOIN,
+    KI
 }
 
 export interface CardConfig {
