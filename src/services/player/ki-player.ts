@@ -21,6 +21,7 @@ interface CardMemory {
 }
 
 export class KIPlayer implements MemoryPlayer {
+    private readonly forgetfulness = 0.2;
     private cards: Array<CardConfig & { index: number }> = null;
     private memory: Array<CardMemory>;
     private newInformation: Subject<string> = new Subject<string>();
@@ -71,7 +72,7 @@ export class KIPlayer implements MemoryPlayer {
         return of(playerAck());
     }
 
-    private forget(cardIndices: Array<number>): void {
+    private removeMemory(cardIndices: Array<number>): void {
         cardIndices.forEach( index => {
             const inMemoryIndex = this.memory.findIndex(card => card.index === index);
             if( inMemoryIndex >= 0 ) {
@@ -83,7 +84,7 @@ export class KIPlayer implements MemoryPlayer {
     cardsSolved(event: GamePairSolved): Observable<PlayerAck> {
         this.cards[event.cards[0]].state = CardState.SOLVED;
         this.cards[event.cards[1]].state = CardState.SOLVED;
-        this.forget(event.cards);
+        this.removeMemory(event.cards);
         this.newInformation.next('solved card');
         return of(playerAck());
     }
@@ -100,11 +101,25 @@ export class KIPlayer implements MemoryPlayer {
         return of(playerAck());
     }
 
+    private forget(): void {
+        this.memory = this.memory.filter((card) => {
+            const remember = Math.random() > this.forgetfulness
+            if( !remember ){
+                const partner = this.memory.find(p => p.partner === card.index)
+                if( partner ){
+                    partner.partner = null;
+                }
+            }
+            return remember;
+        });
+    }
+
     private randomGuess(): number {
         const known = this.memory.map(card => card.index);
         const unknowns = this.cards
             .filter(card => card.state === CardState.HIDDEN && !known.includes(card.index));
-        return unknowns[Math.floor(Math.random()*unknowns.length)]?.index ?? -1;
+        return unknowns[Math.floor(Math.random()*unknowns.length)]?.index
+            ?? this.cards.find(card => card.state === CardState.HIDDEN)?.index;
     }
 
     private newGuess(): number {
@@ -113,13 +128,13 @@ export class KIPlayer implements MemoryPlayer {
         if( revealed ){
             const partner = this.memory.find(card => card.partner === revealed.index);
             if( partner ){
-                console.log('revealed card has partner');
+                console.log('I know a partner');
                 return partner.index
             }
         } else {
             const pair = this.memory.find(card => card.partner !== null);
             if( pair ){
-                console.log('i know a pair');
+                console.log('I know a pair');
                 return pair.index;
             }
         }
@@ -132,6 +147,7 @@ export class KIPlayer implements MemoryPlayer {
             tap(info => { console.log(`new information from ${info}`)}),
             startWith(null),
             map(() => this.newGuess()),
+            tap(() => this.forget()),
             delay(500),
             tap( selection => console.log('Ki selects', selection)),
             map( selected => ({ card: selected }))

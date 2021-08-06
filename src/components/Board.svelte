@@ -2,6 +2,7 @@
     import type { CardConfig } from '../services/game';
     import { createEventDispatcher } from 'svelte';
     import Card from './Card.svelte';
+    import { filter, groupBy, mergeMap, Subject, throttleTime } from 'rxjs';
 
     export let active: boolean = false;
     export let cards: Array<CardConfig> = [];
@@ -9,12 +10,14 @@
 
     const dispatch = createEventDispatcher<{ cardSelected: number }>();
     const backside = '/assets/backside.jpg';
-
-    function emitIfActive(index: number): void {
-        if (active) {
-            dispatch('cardSelected', index);
-        }
-    }
+    const debouncer$ = new Subject<number>();
+    debouncer$.pipe(
+        filter(() => active),
+        groupBy(i => i),
+        mergeMap( group$ => group$.pipe(throttleTime(1000))),
+    ).subscribe( selected => {
+        dispatch('cardSelected', selected);
+    })
 </script>
 
 <div
@@ -26,7 +29,7 @@
         <Card
             {backside}
             cardConfig={card}
-            on:mouseup={() => emitIfActive(index)}
+            on:mouseup={() => debouncer$.next(index)}
         />
     {/each}
 </div>
