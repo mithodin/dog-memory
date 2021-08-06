@@ -47,6 +47,7 @@ export function playerLeave(): PlayerLeave {
 
 export interface MemoryPlayer {
     init(event: GameInit): Observable<PlayerName | PlayerLeave>;
+    end(): void;
     startRound(event: GameRoundStart): Observable<PlayerAck>;
     activePlayer(event: GameActivePlayer): Observable<PlayerAck>;
     selectCards(): Observable<PlayerCardSelected>;

@@ -59,7 +59,6 @@ export class PeerjsSession<EVENTS extends GenericEvent> {
 
     public send(event: EVENTS): void {
         this.connection$.pipe(take(1)).subscribe(connection => {
-            console.log('trying to send event', event);
             connection.send(event);
         });
     }

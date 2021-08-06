@@ -45,17 +45,22 @@ export class RemoteGame implements MemoryGame {
 
     private runGame(peer: PeerjsSession<RemoteMemoryEvent>): Observable<void> {
         const done = new AsyncSubject<void>();
+        const endEvent$ = new AsyncSubject<void>();
         const endSelectCards$ = new Subject<void>();
         const players = new Subject<GamePlayer>();
         peer.events$
             .pipe(
-                catchError(() => EMPTY)
+                catchError(() => EMPTY),
+                takeUntil(endEvent$)
             )
             .subscribe({
                 next: event => {
                     let response: Observable<RemoteMemoryResponse>;
-                    console.log('received event', event);
                     switch (event.type) {
+                        case 'END':
+                            endEvent$.next();
+                            endEvent$.complete();
+                            break;
                         case 'GAME_INIT':
                             response = this.makeEvent(this.gameCode$.pipe(
                                 switchMap( gameCode => this.player.init({ ...event, players, gameCode })),
@@ -64,8 +69,7 @@ export class RemoteGame implements MemoryGame {
                                         peer.close();
                                     }
                                 }),
-                                filter<PlayerName>(event => event.hasOwnProperty('name')),
-                                tap( ev => console.log('answer is ',ev))
+                                filter<PlayerName>(event => event.hasOwnProperty('name'))
                             ), 'NAME', event.uuid);
                             break;
                         case 'PLAYER_NAME':
@@ -106,6 +110,7 @@ export class RemoteGame implements MemoryGame {
                     }
                 },
                 complete: () => {
+                    peer.close();
                     done.next();
                     done.complete();
                 }

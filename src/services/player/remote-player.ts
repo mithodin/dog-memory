@@ -21,6 +21,7 @@ export type RemoteCardsHidden = RemoteEvent<{}, 'CARDS_HIDDEN'>;
 export type RemotePairSolved = RemoteEvent<GamePairSolved, 'PAIR_SOLVED'>;
 export type RemoteRoundEnd = RemoteEvent<GameRoundEnd, 'ROUND_END'>;
 export type RemoteGameInit = RemoteEvent<Omit<GameInit,'players' | 'gameCode'>, 'GAME_INIT'>;
+export type RemoteGameEnd = RemoteEvent<{},'END'>;
 export type RemotePlayerName = RemoteEvent<{ name: string, index: number}, 'PLAYER_NAME'>;
 export type RemotePlayerLeft = RemoteEvent<GamePlayerLeft, 'PLAYER_LEFT'>;
 export type RemoteSelectCards = RemoteEvent<{}, 'SELECT_CARDS'>;
@@ -38,6 +39,7 @@ export type RemoteMemoryQuery =
     | RemotePairSolved
     | RemoteRoundEnd
     | RemoteGameInit
+    | RemoteGameEnd
     | RemotePlayerLeft
     | RemoteSelectCards
     | RemoteEndSelectCards
@@ -61,7 +63,8 @@ export const QueryResponseMapping = {
     ACTIVE_PLAYER: 'ACK',
     SELECT_CARDS: 'CARD_SELECTED',
     END_SELECT_CARDS: 'ACK',
-    PLAYER_NAME: 'ACK'
+    PLAYER_NAME: 'ACK',
+    END: 'ACK' // not really though
 } as const;
 
 type TagToType = {[T in RemoteMemoryEvent as T['type']]: T};
@@ -72,6 +75,14 @@ export type RemoteMemoryEvent = RemoteMemoryQuery | RemoteMemoryResponse
 
 export class RemotePlayer implements MemoryPlayer {
     private session$: ReplaySubject<PeerjsSession<RemoteMemoryEvent>> = new ReplaySubject(1);
+
+    end(): void {
+        this.session$.pipe(
+            take(1)
+        ).subscribe( session => {
+            session.send(this.makeEvent<RemoteGameEnd>({}, 'END'));
+        });
+    }
 
     activePlayer(event: GameActivePlayer): Observable<PlayerAck> {
         return this.query(this.makeEvent<RemoteActivePlayer>(event, 'ACTIVE_PLAYER'), true);
@@ -112,9 +123,7 @@ export class RemotePlayer implements MemoryPlayer {
                 .pipe(
                     tap(() => {
                         players.subscribe( player => {
-                            this.query(this.makeEvent<RemotePlayerName>(player, 'PLAYER_NAME'), true).subscribe(() => {
-                                console.log('ack for player', player);
-                            });
+                            this.query(this.makeEvent<RemotePlayerName>(player, 'PLAYER_NAME'), true).subscribe();
                         })
                     })
                 )
@@ -124,7 +133,12 @@ export class RemotePlayer implements MemoryPlayer {
     }
 
     playerLeft(event: GamePlayerLeft): Observable<PlayerAck> {
-        return this.query(this.makeEvent<RemotePlayerLeft>(event,'PLAYER_LEFT'), true);
+        return this.query(this.makeEvent<RemotePlayerLeft>(event,'PLAYER_LEFT'), true).pipe(
+            tap(() => this.session$.subscribe( () => {
+                session => session.close();
+                this.session$.complete();
+            }))
+        );
     }
 
     selectCards(): Observable<PlayerCardSelected> {

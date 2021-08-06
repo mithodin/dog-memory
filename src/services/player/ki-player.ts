@@ -25,6 +25,8 @@ export class KIPlayer implements MemoryPlayer {
     private memory: Array<CardMemory>;
     private newInformation: Subject<string> = new Subject<string>();
 
+    end(): void {}
+
     activePlayer(event: GameActivePlayer): Observable<PlayerAck> {
         return of(playerAck());
     }

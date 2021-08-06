@@ -29,8 +29,9 @@ export class LocalPlayer implements MemoryPlayer {
         private readonly board: MemoryGameBoard,
         private readonly header: MemoryGameHeader,
         private readonly modal: MemoryGameModal
-    ) {
-    }
+    ) {}
+
+    end(): void {}
 
     cardRevealed(revealed: GameCardRevealed): Observable<PlayerAck> {
         this.board.revealCard(revealed);
@@ -90,7 +91,6 @@ export class LocalPlayer implements MemoryPlayer {
     }
 
     playerLeft(event: GamePlayerLeft): Observable<PlayerAck> {
-        console.log(`player ${event.playerIndex} left the game`);
         return of(playerAck());
     }
 }

@@ -118,7 +118,8 @@ export class LocalGame implements MemoryGame {
                     }
                 }),
                 filter( (newRound) => !newRound),
-                mapTo(null)
+                mapTo(null),
+                tap(() => this.toAll(null, 'end'))
             );
     }
 
@@ -128,7 +129,7 @@ export class LocalGame implements MemoryGame {
             let payload = individualize(player, index, event);
             let call: (ev: Parameters<MemoryPlayer[Method]>[0]) => Observable<ObservableResponse<MemoryPlayer[Method]>> = player[method] as any; // it's fine
             call = call.bind(player);
-            return call(payload).pipe(
+            return call(payload)?.pipe(
                 map( response => ({
                     playerIndex: index,
                     event: response
@@ -157,7 +158,7 @@ export class LocalGame implements MemoryGame {
         playerResponses.pipe(
             filter<PlayerResponse<PlayerLeave>>(response => response.event.hasOwnProperty('leave'))
         ).subscribe( leave => {
-            this.toAll({ playerIndex: leave.playerIndex }, 'playerLeft').subscribe({}); //don't actually care about the responses here
+            this.toAll({ playerIndex: leave.playerIndex }, 'playerLeft').subscribe(); //don't actually care about the responses here
         });
 
         playerResponses
