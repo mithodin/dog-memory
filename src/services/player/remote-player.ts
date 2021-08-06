@@ -21,7 +21,7 @@ export type RemoteCardRevealed = RemoteEvent<GameCardRevealed, 'CARD_REVEALED'>;
 export type RemoteCardsHidden = RemoteEvent<{}, 'CARDS_HIDDEN'>;
 export type RemotePairSolved = RemoteEvent<GamePairSolved, 'PAIR_SOLVED'>;
 export type RemoteRoundEnd = RemoteEvent<GameRoundEnd, 'ROUND_END'>;
-export type RemoteGameInit = RemoteEvent<GameInit, 'GAME_INIT'>;
+export type RemoteGameInit = RemoteEvent<Omit<GameInit,'players'>, 'GAME_INIT'>;
 export type RemotePlayerLeft = RemoteEvent<GamePlayerLeft, 'PLAYER_LEFT'>;
 export type RemoteSelectCards = RemoteEvent<{}, 'SELECT_CARDS'>;
 export type RemoteRoundStart = RemoteEvent<GameRoundStart, 'ROUND_START'>;
@@ -47,7 +47,7 @@ export type RemoteMemoryResponse =
     | RemoteName
     | RemoteCardSelected;
 
-const QueryResponseMapping = {
+export const QueryResponseMapping = {
     CARDS_HIDDEN: 'ACK',
     CARD_REVEALED: 'ACK',
     GAME_INIT: 'NAME',
@@ -90,6 +90,7 @@ export class RemotePlayer implements MemoryPlayer {
 
     init(event: GameInit): Observable<PlayerName | PlayerLeave> {
         const response$ = new Subject<PlayerName | PlayerLeave>();
+        const { players, ...rawEvent } = event;
         PeerjsSession.getHostKey(event.gameCode, event.playerIndex).pipe(
             switchMap(hostKey => {
                 this.session$.next(new PeerjsSession(hostKey));
@@ -102,7 +103,7 @@ export class RemotePlayer implements MemoryPlayer {
                     response$.complete();
                 }
             });
-            this.query(this.makeEvent<RemoteGameInit>(event,'GAME_INIT')).subscribe(response$);
+            this.query(this.makeEvent<RemoteGameInit>(rawEvent,'GAME_INIT')).subscribe(response$);
         });
         return response$;
     }

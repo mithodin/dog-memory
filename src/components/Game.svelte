@@ -101,9 +101,14 @@
             ).pipe(
                 map(answer => answer.buttonClicked === 0)
             ),
-        getGameCode: () => {
-            return of('TODO');
-        }
+        getGameCode: () =>
+            queryPlayer(
+                'query.gameCode',
+                null,
+                [ 'action.okay' ]
+            ).pipe(
+                map(answer => answer.input)
+            )
     };
 
     // player 2 does not need to implement all functions
