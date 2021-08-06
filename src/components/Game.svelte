@@ -5,7 +5,6 @@
     import Board from './Board.svelte';
     import Players from './Players.svelte';
     import type { MemoryGameBoard, MemoryGameHeader, MemoryGameModal, PlayerCardSelected } from '../services/player';
-    import { LocalPlayer } from '../services/player';
     import { Observable, of, Subject, Subscriber, take } from 'rxjs';
     import { t } from 'svelte-i18n';
     import { range } from '../utils/utils';
@@ -16,6 +15,7 @@
     import { KIPlayer } from '../services/player/ki-player';
     import { RemotePlayer } from '../services/player/remote-player';
     import { RemoteGame } from '../services/remote-game';
+    import { LocalPlayer } from '../services/player/local-player';
 
     export let gameMode: GameMode = GameMode.LOCAL;
     export let numPictures: number = 2;

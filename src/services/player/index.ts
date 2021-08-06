@@ -9,8 +9,6 @@ import type {
     GameRoundStart
 } from '../game';
 
-export * from './local-player';
-
 export type MemoryPlayerEvent = PlayerName | PlayerAck | PlayerCardSelected | PlayerNewRound | PlayerLeave;
 
 export interface PlayerName {
