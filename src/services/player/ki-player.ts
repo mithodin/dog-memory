@@ -10,7 +10,7 @@ import type {
     GameRoundEnd,
     GameRoundStart
 } from '../game';
-import { CardState, MemoryGame } from '../game';
+import { CardState, LocalGame } from '../game';
 import type { Observable } from 'rxjs';
 import { delay, map, mapTo, of, startWith, Subject, tap } from 'rxjs';
 
@@ -137,7 +137,7 @@ export class KIPlayer implements MemoryPlayer {
     }
 
     startRound(event: GameRoundStart): Observable<PlayerAck> {
-        return MemoryGame.cardLocationToCardConfig(event.cards.map((card,i) => ({ ...card, url: `${i}` })), false).pipe(
+        return LocalGame.cardLocationToCardConfig(event.cards.map((card, i) => ({ ...card, url: `${i}` })), false).pipe(
             tap( cards => {
                 this.cards = cards.map( (card, i) => ({ ...card, index: i }));
                 this.memory = [];

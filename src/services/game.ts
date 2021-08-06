@@ -70,10 +70,14 @@ interface TurnOver {
     over: boolean;
 }
 
-export class MemoryGame {
+export interface MemoryGame {
+    run(): Observable<void>;
+}
+
+export class LocalGame implements MemoryGame {
     private readonly numPlayers: number;
     private readonly playerNames: Array<string>;
-    private readonly gameCode = MemoryGame.getEmojiCode();
+    private readonly gameCode = LocalGame.getEmojiCode();
 
     constructor(
         private readonly players: Array<MemoryPlayer>,
@@ -178,7 +182,7 @@ export class MemoryGame {
                 }));
             }),
             tap( cards => {
-               MemoryGame.cardLocationToCardConfig(cards, false).subscribe(cardConfig => {
+               LocalGame.cardLocationToCardConfig(cards, false).subscribe(cardConfig => {
                    cardConfiguration = cardConfig;
                });
             }),
@@ -333,7 +337,7 @@ export class MemoryGame {
      *               length = 5 --> 7.55 games/s
      */
     static getEmojiCode(length: number = 4): string {
-        const emoji = createArray(length, () => MemoryGame.getAnimalEmoji());
+        const emoji = createArray(length, () => LocalGame.getAnimalEmoji());
         return emoji.join('');
     }
 

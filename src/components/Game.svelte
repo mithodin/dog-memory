@@ -1,19 +1,21 @@
 <script lang="ts">
-    import type { CardConfig, GameCardRevealed, GamePairSolved, GameRoundStart } from '../services/game';
-    import { CardState, GameMode, MemoryGame } from '../services/game';
+    import type { CardConfig, GameCardRevealed, GamePairSolved, GameRoundStart, MemoryGame } from '../services/game';
+    import { CardState, GameMode, LocalGame } from '../services/game';
     import Loading from './Loading.svelte';
     import Board from './Board.svelte';
     import Players from './Players.svelte';
     import type { MemoryGameBoard, MemoryGameHeader, MemoryGameModal, PlayerCardSelected } from '../services/player';
+    import { LocalPlayer } from '../services/player';
     import { Observable, of, Subject, Subscriber, take } from 'rxjs';
     import { t } from 'svelte-i18n';
     import { range } from '../utils/utils';
     import { getPlayerName, queryPlayer } from '../services/query';
     import { map } from 'rxjs/operators';
     import { navigate } from 'svelte-routing';
-    import { LocalPlayer } from '../services/player';
     import { onMount } from 'svelte';
     import { KIPlayer } from '../services/player/ki-player';
+    import { RemotePlayer } from '../services/player/remote-player';
+    import { RemoteGame } from '../services/remote-game';
 
     export let gameMode: GameMode = GameMode.LOCAL;
     export let numPictures: number = 2;
@@ -57,7 +59,7 @@
             cards = null;
             const numCards = event.cards.length * 2;
             columns = Math.ceil(Math.sqrt(numCards));
-            MemoryGame.cardLocationToCardConfig(event.cards, true).subscribe( loadedCards => {
+            LocalGame.cardLocationToCardConfig(event.cards, true).subscribe(loadedCards => {
                 cards = loadedCards;
                 boardLoaded.next();
             });
@@ -98,7 +100,10 @@
                 false
             ).pipe(
                 map(answer => answer.buttonClicked === 0)
-            )
+            ),
+        getGameCode: () => {
+            return of('TODO');
+        }
     };
 
     // player 2 does not need to implement all functions
@@ -120,18 +125,30 @@
         getNewRound: () => of(true)
     };
 
-    function setUpLocal(): MemoryGame {
+    function setUpLocal(): LocalGame {
         const player1 = new LocalPlayer(boardController, headerController, modalController);
         const player2 = new LocalPlayer(boardController2, headerController2, modalController2);
 
-        return new MemoryGame([player1, player2], numPictures);
+        return new LocalGame([player1, player2], numPictures);
     }
 
-    function setUpKI(): MemoryGame {
+    function setUpKI(): LocalGame {
         const player1 = new LocalPlayer(boardController, headerController, modalController);
         const player2 = new KIPlayer();
 
-        return new MemoryGame([player1, player2], numPictures);
+        return new LocalGame([player1, player2], numPictures);
+    }
+
+    function setUpHost(): LocalGame {
+        const player1 = new LocalPlayer(boardController, headerController, modalController);
+        const player2 = new RemotePlayer();
+
+        return new LocalGame([player1, player2], numPictures);
+    }
+
+    function setUpJoin(): RemoteGame {
+        const player = new LocalPlayer(boardController, headerController, modalController);
+        return new RemoteGame(modalController, player);
     }
 
     onMount(() => {
@@ -142,6 +159,12 @@
                 break;
             case GameMode.KI:
                 game = setUpKI();
+                break;
+            case GameMode.HOST:
+                game = setUpHost();
+                break;
+            case GameMode.JOIN:
+                game = setUpJoin();
                 break;
         }
         if( game ){

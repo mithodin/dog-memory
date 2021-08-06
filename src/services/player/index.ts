@@ -75,4 +75,5 @@ export interface MemoryGameBoard {
 export interface MemoryGameModal {
     getName(playerIndex: number): Observable<string>;
     getNewRound(event: GameRoundEnd): Observable<boolean>;
+    getGameCode(): Observable<string>;
 }

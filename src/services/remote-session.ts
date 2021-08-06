@@ -2,7 +2,7 @@ import { createArray } from '../utils/utils';
 import type { Observable } from 'rxjs';
 import { BehaviorSubject, filter, firstValueFrom, from, map, ReplaySubject, take } from 'rxjs';
 import Peer, { DataConnection } from 'peerjs';
-import { MemoryGame } from './game';
+import { LocalGame } from './game';
 
 interface GameEventCommon<T extends string> {
     type: T;
@@ -160,7 +160,7 @@ export abstract class RemoteSession {
 
 export class RemoteSessionHost extends RemoteSession {
     constructor(
-        private readonly gameCode: string = MemoryGame.getEmojiCode(),
+        private readonly gameCode: string = LocalGame.getEmojiCode(),
         peer: Peer = null
     ) {
         super();
@@ -183,7 +183,7 @@ export class RemoteSessionHost extends RemoteSession {
 
 export class RemoteSessionClient extends RemoteSession {
     constructor(
-        private readonly gameCode: string = MemoryGame.getEmojiCode(),
+        private readonly gameCode: string = LocalGame.getEmojiCode(),
         peer: Peer = null
     ) {
         super();

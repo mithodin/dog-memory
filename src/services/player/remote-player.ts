@@ -1,24 +1,25 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { MemoryPlayer, PlayerAck, PlayerCardSelected, PlayerLeave, PlayerName, PlayerNewRound } from './index';
+import { playerLeave } from './index';
 import type {
     GameActivePlayer,
     GameCardRevealed,
     GameInit,
     GamePairSolved,
     GamePlayerLeft,
-    GameRoundEnd, GameRoundStart
+    GameRoundEnd,
+    GameRoundStart
 } from '../game';
 import type { Observable } from 'rxjs';
-import { catchError, EMPTY, filter, from, map, of, ReplaySubject, Subject, switchMap, take } from 'rxjs';
-import Peer, { DataConnection } from 'peerjs';
-import { playerLeave } from './index';
+import { catchError, EMPTY, filter, first, ReplaySubject, Subject, switchMap, take } from 'rxjs';
+import { GenericEvent, PeerjsSession } from '../peerjs';
 
 export type RemoteEvent<PAYLOAD extends Record<string, any>,TAG extends string> = GenericEvent & PAYLOAD & { type: TAG, uuid: string };
 
 export type RemoteActivePlayer = RemoteEvent<GameActivePlayer, 'ACTIVE_PLAYER'>;
 export type RemoteCardRevealed = RemoteEvent<GameCardRevealed, 'CARD_REVEALED'>;
 export type RemoteCardsHidden = RemoteEvent<{}, 'CARDS_HIDDEN'>;
-export type RemoteCardsSolved = RemoteEvent<GamePairSolved, 'PAIR_SOLVED'>;
+export type RemotePairSolved = RemoteEvent<GamePairSolved, 'PAIR_SOLVED'>;
 export type RemoteRoundEnd = RemoteEvent<GameRoundEnd, 'ROUND_END'>;
 export type RemoteGameInit = RemoteEvent<GameInit, 'GAME_INIT'>;
 export type RemotePlayerLeft = RemoteEvent<GamePlayerLeft, 'PLAYER_LEFT'>;
@@ -33,7 +34,7 @@ export type RemoteMemoryQuery =
     | RemoteActivePlayer
     | RemoteCardRevealed
     | RemoteCardsHidden
-    | RemoteCardsSolved
+    | RemotePairSolved
     | RemoteRoundEnd
     | RemoteGameInit
     | RemotePlayerLeft
@@ -68,23 +69,23 @@ export class RemotePlayer implements MemoryPlayer {
     private session$: ReplaySubject<PeerjsSession<RemoteMemoryEvent>> = new ReplaySubject(1);
 
     activePlayer(event: GameActivePlayer): Observable<PlayerAck> {
-        return undefined;
+        return this.query(this.makeEvent<RemoteActivePlayer>(event, 'ACTIVE_PLAYER'));
     }
 
     cardRevealed(revealed: GameCardRevealed): Observable<PlayerAck> {
-        return undefined;
+        return this.query(this.makeEvent<RemoteCardRevealed>(revealed, 'CARD_REVEALED'));
     }
 
     cardsHidden(): Observable<PlayerAck> {
-        return undefined;
+        return this.query(this.makeEvent<RemoteCardsHidden>({}, 'CARDS_HIDDEN'));
     }
 
     cardsSolved(event: GamePairSolved): Observable<PlayerAck> {
-        return undefined;
+        return this.query(this.makeEvent<RemotePairSolved>(event, 'PAIR_SOLVED'));
     }
 
     endRound(event: GameRoundEnd): Observable<PlayerNewRound> {
-        return undefined;
+        return this.query(this.makeEvent<RemoteRoundEnd>(event, 'ROUND_END'));
     }
 
     init(event: GameInit): Observable<PlayerName | PlayerLeave> {
@@ -98,6 +99,7 @@ export class RemotePlayer implements MemoryPlayer {
             session.events$.subscribe({
                 error: () => {
                     response$.next(playerLeave());
+                    response$.complete();
                 }
             });
             this.query(this.makeEvent<RemoteGameInit>(event,'GAME_INIT')).subscribe(response$);
@@ -106,24 +108,25 @@ export class RemotePlayer implements MemoryPlayer {
     }
 
     playerLeft(event: GamePlayerLeft): Observable<PlayerAck> {
-        return undefined;
+        return this.query(this.makeEvent<RemotePlayerLeft>(event,'PLAYER_LEFT'));
     }
 
     selectCards(): Observable<PlayerCardSelected> {
-        return undefined;
+        return this.query(this.makeEvent<RemoteSelectCards>({}, 'SELECT_CARDS'));
     }
 
     startRound(event: GameRoundStart): Observable<PlayerAck> {
-        return undefined;
+        return this.query(this.makeEvent<RemoteRoundStart>(event, 'ROUND_START'));
     }
 
-    private query<QUERY extends RemoteMemoryQuery>(query: QUERY): Observable<RemoteMemoryResponseTo<QUERY>> {
+    private query<QUERY extends RemoteMemoryQuery>(query: QUERY, expectOne?: boolean): Observable<RemoteMemoryResponseTo<QUERY>> {
         return this.session$.pipe(
             take(1),
             switchMap( session => {
                 const answer$ = session.events$.pipe(
                     catchError(() => EMPTY),
-                    filter<RemoteMemoryResponseTo<QUERY>>( event => event.uuid === query.uuid)
+                    filter<RemoteMemoryResponseTo<QUERY>>( event => event.uuid === query.uuid),
+                    expectOne ? first() : (obs) => obs
                 );
                 session.send(query);
                 return answer$
@@ -137,68 +140,5 @@ export class RemotePlayer implements MemoryPlayer {
             type,
             uuid: uuidv4()
         } as QUERY;
-    }
-}
-
-export interface GenericEvent {
-    type: string;
-}
-
-export const CONNECTION_CLOSED = 'CONNECTION_CLOSED';
-
-class PeerjsSession<EVENTS extends GenericEvent> {
-    private readonly connection$ = new ReplaySubject<DataConnection>(1);
-    private readonly events = new Subject<EVENTS>();
-    public readonly events$ = this.events.asObservable();
-
-    static getHostKey(emojiCode: string, index: number): Observable<string> {
-        const key = `host${index}@${emojiCode}@memory.deadcrab.de`;
-        return PeerjsSession.hashKey(key);
-    }
-
-    static getGuestKey(emojiCode: string, index: number): Observable<string> {
-        const key = `guest${index}@${emojiCode}@memory.deadcrab.de`;
-        return PeerjsSession.hashKey(key);
-    }
-
-    private static hashKey(key: string): Observable<string> {
-        const encoder = new TextEncoder();
-        return from(window.crypto.subtle.digest('SHA-256', encoder.encode(key)))
-            .pipe(
-                map((hash) => {
-                    const hashArray = Array.from(new Uint8Array(hash));
-                    return hashArray
-                        .map((byte) => byte.toString(16).padStart(2, '0'))
-                        .join('');
-                })
-            );
-    }
-
-    constructor(myKey: string, remoteKey?: string) {
-        this.connection$.subscribe( (connection) => {
-            connection.on('close', () => this.events.error(CONNECTION_CLOSED));
-            connection.on('data', (data) => this.events.next(data));
-        });
-        const peer = new Peer(myKey);
-        peer.on('open', () => {
-            if( remoteKey ) {
-                const connection = peer.connect(remoteKey, { reliable: true });
-                connection.on('open', () => {
-                    this.connection$.next(connection);
-                })
-            } else {
-                peer.on('connection', (connection) => {
-                    connection.on('open', () => {
-                        this.connection$.next(connection);
-                    });
-                })
-            }
-        });
-    }
-
-    public send(event: EVENTS): void {
-        this.connection$.pipe(take(1)).subscribe( connection => {
-            connection.send(event);
-        });
     }
 }
