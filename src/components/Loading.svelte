@@ -59,6 +59,7 @@
         align-items: center;
         color: #d31145;
         font-size: 50px;
+        z-index: 10;
     }
     .paw-loader {
         transform-origin: 50% 50%;
