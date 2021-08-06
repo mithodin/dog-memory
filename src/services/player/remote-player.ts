@@ -10,8 +10,7 @@ import type {
     GameRoundEnd,
     GameRoundStart
 } from '../game';
-import type { Observable } from 'rxjs';
-import { catchError, EMPTY, filter, first, ReplaySubject, Subject, switchMap, take } from 'rxjs';
+import { Observable, catchError, EMPTY, filter, first, ReplaySubject, Subject, switchMap, take, tap } from 'rxjs';
 import { GenericEvent, PeerjsSession } from '../peerjs';
 
 export type RemoteEvent<PAYLOAD extends Record<string, any>,TAG extends string> = GenericEvent & PAYLOAD & { type: TAG, uuid: string };
@@ -21,9 +20,11 @@ export type RemoteCardRevealed = RemoteEvent<GameCardRevealed, 'CARD_REVEALED'>;
 export type RemoteCardsHidden = RemoteEvent<{}, 'CARDS_HIDDEN'>;
 export type RemotePairSolved = RemoteEvent<GamePairSolved, 'PAIR_SOLVED'>;
 export type RemoteRoundEnd = RemoteEvent<GameRoundEnd, 'ROUND_END'>;
-export type RemoteGameInit = RemoteEvent<Omit<GameInit,'players'>, 'GAME_INIT'>;
+export type RemoteGameInit = RemoteEvent<Omit<GameInit,'players' | 'gameCode'>, 'GAME_INIT'>;
+export type RemotePlayerName = RemoteEvent<{ name: string, index: number}, 'PLAYER_NAME'>;
 export type RemotePlayerLeft = RemoteEvent<GamePlayerLeft, 'PLAYER_LEFT'>;
 export type RemoteSelectCards = RemoteEvent<{}, 'SELECT_CARDS'>;
+export type RemoteEndSelectCards = RemoteEvent<{}, 'END_SELECT_CARDS'>;
 export type RemoteRoundStart = RemoteEvent<GameRoundStart, 'ROUND_START'>;
 export type RemoteAck = RemoteEvent<PlayerAck, 'ACK'>;
 export type RemoteNewRound = RemoteEvent<PlayerNewRound, 'NEW_ROUND'>;
@@ -39,7 +40,9 @@ export type RemoteMemoryQuery =
     | RemoteGameInit
     | RemotePlayerLeft
     | RemoteSelectCards
-    | RemoteRoundStart;
+    | RemoteEndSelectCards
+    | RemoteRoundStart
+    | RemotePlayerName;
 
 export type RemoteMemoryResponse =
     | RemoteAck
@@ -56,7 +59,9 @@ export const QueryResponseMapping = {
     ROUND_END: 'NEW_ROUND',
     ROUND_START: 'ACK',
     ACTIVE_PLAYER: 'ACK',
-    SELECT_CARDS: 'CARD_SELECTED'
+    SELECT_CARDS: 'CARD_SELECTED',
+    END_SELECT_CARDS: 'ACK',
+    PLAYER_NAME: 'ACK'
 } as const;
 
 type TagToType = {[T in RemoteMemoryEvent as T['type']]: T};
@@ -69,28 +74,28 @@ export class RemotePlayer implements MemoryPlayer {
     private session$: ReplaySubject<PeerjsSession<RemoteMemoryEvent>> = new ReplaySubject(1);
 
     activePlayer(event: GameActivePlayer): Observable<PlayerAck> {
-        return this.query(this.makeEvent<RemoteActivePlayer>(event, 'ACTIVE_PLAYER'));
+        return this.query(this.makeEvent<RemoteActivePlayer>(event, 'ACTIVE_PLAYER'), true);
     }
 
     cardRevealed(revealed: GameCardRevealed): Observable<PlayerAck> {
-        return this.query(this.makeEvent<RemoteCardRevealed>(revealed, 'CARD_REVEALED'));
+        return this.query(this.makeEvent<RemoteCardRevealed>(revealed, 'CARD_REVEALED'), true);
     }
 
     cardsHidden(): Observable<PlayerAck> {
-        return this.query(this.makeEvent<RemoteCardsHidden>({}, 'CARDS_HIDDEN'));
+        return this.query(this.makeEvent<RemoteCardsHidden>({}, 'CARDS_HIDDEN'), true);
     }
 
     cardsSolved(event: GamePairSolved): Observable<PlayerAck> {
-        return this.query(this.makeEvent<RemotePairSolved>(event, 'PAIR_SOLVED'));
+        return this.query(this.makeEvent<RemotePairSolved>(event, 'PAIR_SOLVED'), true);
     }
 
     endRound(event: GameRoundEnd): Observable<PlayerNewRound> {
-        return this.query(this.makeEvent<RemoteRoundEnd>(event, 'ROUND_END'));
+        return this.query(this.makeEvent<RemoteRoundEnd>(event, 'ROUND_END'), true);
     }
 
     init(event: GameInit): Observable<PlayerName | PlayerLeave> {
         const response$ = new Subject<PlayerName | PlayerLeave>();
-        const { players, ...rawEvent } = event;
+        const { players, gameCode, ...rawEvent } = event;
         PeerjsSession.getHostKey(event.gameCode, event.playerIndex).pipe(
             switchMap(hostKey => {
                 this.session$.next(new PeerjsSession(hostKey));
@@ -103,21 +108,38 @@ export class RemotePlayer implements MemoryPlayer {
                     response$.complete();
                 }
             });
-            this.query(this.makeEvent<RemoteGameInit>(rawEvent,'GAME_INIT')).subscribe(response$);
+            this.query(this.makeEvent<RemoteGameInit>(rawEvent,'GAME_INIT'), true)
+                .pipe(
+                    tap(() => {
+                        players.subscribe( player => {
+                            this.query(this.makeEvent<RemotePlayerName>(player, 'PLAYER_NAME'), true).subscribe(() => {
+                                console.log('ack for player', player);
+                            });
+                        })
+                    })
+                )
+                .subscribe(response$);
         });
         return response$;
     }
 
     playerLeft(event: GamePlayerLeft): Observable<PlayerAck> {
-        return this.query(this.makeEvent<RemotePlayerLeft>(event,'PLAYER_LEFT'));
+        return this.query(this.makeEvent<RemotePlayerLeft>(event,'PLAYER_LEFT'), true);
     }
 
     selectCards(): Observable<PlayerCardSelected> {
-        return this.query(this.makeEvent<RemoteSelectCards>({}, 'SELECT_CARDS'));
+        const selected$ = this.query(this.makeEvent<RemoteSelectCards>({}, 'SELECT_CARDS'))
+        return new Observable<PlayerCardSelected>(subscriber => {
+            selected$.subscribe(subscriber);
+
+            return () => {
+                this.query(this.makeEvent<RemoteEndSelectCards>({}, 'END_SELECT_CARDS'), true).subscribe();
+            }
+        });
     }
 
     startRound(event: GameRoundStart): Observable<PlayerAck> {
-        return this.query(this.makeEvent<RemoteRoundStart>(event, 'ROUND_START'));
+        return this.query(this.makeEvent<RemoteRoundStart>(event, 'ROUND_START'), true);
     }
 
     private query<QUERY extends RemoteMemoryQuery>(query: QUERY, expectOne?: boolean): Observable<RemoteMemoryResponseTo<QUERY>> {
