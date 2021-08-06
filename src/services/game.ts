@@ -1,21 +1,28 @@
 import { DogApi } from './random-dog';
 import { shuffleArray } from './shuffle';
-import type { CardLocation } from './remote-session';
-import { createArray, range } from '../utils/utils';
 import type { ObservableResponse } from '../utils/utils';
+import { createArray, range } from '../utils/utils';
 import type { Observable } from 'rxjs';
 import {
     AsyncSubject,
-    delay, EMPTY, filter,
-    from, last,
-    map, mapTo,
+    delay,
+    EMPTY,
+    filter,
+    from,
+    last,
+    map,
+    mapTo,
     merge,
-    of, reduce,
+    of,
+    reduce,
     ReplaySubject,
-    startWith, Subject,
-    switchMap, take,
+    startWith,
+    Subject,
+    switchMap,
+    take,
     takeUntil,
-    tap, toArray
+    tap,
+    toArray
 } from 'rxjs';
 import type { MemoryPlayer, PlayerCardSelected, PlayerLeave, PlayerName } from './player';
 import { waitUntilNextReady } from '../utils/wait-until-next-ready';
@@ -34,6 +41,11 @@ export interface GameInit {
     readonly numPlayers: number;
     readonly players: Observable<GamePlayer>;
     readonly playerIndex: number;
+}
+
+export interface CardLocation {
+    url: string;
+    indices: [number, number];
 }
 
 export interface GameRoundStart {
