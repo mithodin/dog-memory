@@ -24,7 +24,7 @@ interface CardMemory {
 
 export class KIPlayer implements MemoryPlayer {
     private readonly difficultyLevels: ReadonlyArray<number> = [0.3,0.1,0.0];
-    private readonly roboDogNames = [ 'K9-Byte', 'C3-Pee-O', 'Donnie Barko' ];
+    private readonly roboDogNames = [ 'K9-Byte', 'C3-Pee-O', 'Donnie Barko', 'Cerberus', 'good boi', 'Doge', 'C.H.O.M.P.S.', 'The Mechanical Hound', 'Cybark' ];
     private forgetfulness = 0.0;
     private cards: Array<CardConfig & { index: number }> = null;
     private memory: Array<CardMemory>;
