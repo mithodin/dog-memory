@@ -11,6 +11,7 @@
     const playIcon = '/assets/dog.svg';
     const hostIcon = '/assets/dog-host.svg';
     const joinIcon = '/assets/dog-join.svg';
+    const kiIcon = '/assets/dog-ki.svg';
 </script>
 
 {#if !$isLoading}
@@ -37,7 +38,7 @@
                 </Link>
                 <Link to="ki">
                     <div class="play">
-                        <img src={playIcon} alt={$t('action.playKi')} />
+                        <img src={kiIcon} alt={$t('action.playKi')} />
                         <span class="text">{$t('action.playKi')}</span>
                     </div>
                 </Link>
