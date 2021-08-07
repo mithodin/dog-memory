@@ -22,7 +22,7 @@ interface CardMemory {
 }
 
 export class KIPlayer implements MemoryPlayer {
-    private readonly difficultyLevels: ReadonlyArray<number> = [0.3,0.15,0.0];
+    private readonly difficultyLevels: ReadonlyArray<number> = [0.3,0.1,0.0];
     private forgetfulness = 0.0;
     private cards: Array<CardConfig & { index: number }> = null;
     private memory: Array<CardMemory>;
