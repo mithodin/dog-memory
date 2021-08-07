@@ -46,7 +46,7 @@ export default {
     },
     plugins: [
         replace({
-            '__basepath__': production ? 'dog-memory' : ''
+            '__basepath__': production ? '\'dog-memory\'' : 'null'
         }),
         svelte({
             preprocess: sveltePreprocess({ sourceMap: !production }),

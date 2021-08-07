@@ -8,4 +8,8 @@ export function range(length: number): Array<number> {
     return new Array(length).fill(0).map((_, i) => i);
 }
 
+export function getRandomElement<T>(elements: Array<T>): T {
+    return elements[Math.floor(Math.random() * elements.length)];
+}
+
 export type ObservableResponse<T extends (...any) => Observable<any> | void> = ReturnType<T> extends Observable<infer Ret> ? Ret : never;

@@ -8,7 +8,7 @@
 
     export let url = '';
 
-    const publicPath = '__basepath__';
+    const publicPath = { ...(__basepath__ ? {basepath: __basepath__} : {})};
     const playIcon = './assets/dog.svg';
     const hostIcon = './assets/dog-host.svg';
     const joinIcon = './assets/dog-join.svg';
@@ -16,7 +16,7 @@
 </script>
 
 {#if !$isLoading}
-    <Router {url} basepath={publicPath}>
+    <Router {url} {...publicPath}>
         <Route path="play">
             <Game numPictures={6} gameMode={GameMode.LOCAL} />
         </Route>

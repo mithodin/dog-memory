@@ -14,6 +14,7 @@ import { CardState, LocalGame } from '../game';
 import type { Observable } from 'rxjs';
 import { delay, map, mapTo, of, startWith, Subject, tap } from 'rxjs';
 import { queryPlayer } from '../query';
+import { getRandomElement } from '../../utils/utils';
 
 interface CardMemory {
     image: string;
@@ -23,6 +24,7 @@ interface CardMemory {
 
 export class KIPlayer implements MemoryPlayer {
     private readonly difficultyLevels: ReadonlyArray<number> = [0.3,0.1,0.0];
+    private readonly roboDogNames = [ 'K9-Byte', 'C3-Pee-O', 'Donnie Barko' ];
     private forgetfulness = 0.0;
     private cards: Array<CardConfig & { index: number }> = null;
     private memory: Array<CardMemory>;
@@ -107,7 +109,7 @@ export class KIPlayer implements MemoryPlayer {
     }
 
     init(event: GameInit): Observable<PlayerName | PlayerLeave> {
-        return of({ name: 'K9-Byte'});
+        return of({ name: getRandomElement(this.roboDogNames)});
     }
 
     playerLeft(event: GamePlayerLeft): Observable<PlayerAck> {
