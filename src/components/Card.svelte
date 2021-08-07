@@ -29,7 +29,7 @@
             class="overlay"
             class:player-one={cardConfig.solvedBy === 0}
             class:player-two={cardConfig.solvedBy === 1}
-        />
+        > </div>
     {/if}
 </div>
 
