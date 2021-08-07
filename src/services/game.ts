@@ -186,7 +186,7 @@ export class LocalGame implements MemoryGame {
     private startNewRound(firstPlayer: number): Observable<{ winner?: number }> {
         const dogApi = new DogApi(dogApiURL);
         let cardConfiguration: Array<CardConfig> = null;
-        return from(dogApi.getDogs(this.numPictures)).pipe(
+        return dogApi.getDogs(this.numPictures).pipe(
             map<Array<string>,Array<CardLocation>>( pictureURLs => {
                 const indices = shuffleArray(range(2 * this.numPictures));
                 return pictureURLs.map((url) => ({
