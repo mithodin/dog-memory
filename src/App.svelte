@@ -5,6 +5,7 @@
     import Game from './components/Game.svelte';
     import Modal from './components/Modal.svelte';
     import { GameMode } from './services/game';
+    import { publicPath } from '../svelte.config';
 
     export let url = '';
 
@@ -15,7 +16,7 @@
 </script>
 
 {#if !$isLoading}
-    <Router {url}>
+    <Router {url} basepath={publicPath}>
         <Route path="play">
             <Game numPictures={6} gameMode={GameMode.LOCAL} />
         </Route>
