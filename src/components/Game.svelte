@@ -171,7 +171,7 @@
                 break;
         }
         if( game ){
-            game.run().subscribe({ complete: () => {navigate('__basepath__/');}});
+            game.run().subscribe({ complete: () => {navigate('./');}});
         }
     });
 </script>
