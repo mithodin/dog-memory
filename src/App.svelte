@@ -8,7 +8,7 @@
 
     export let url = '';
 
-    const publicPath = '/dog-memory';
+    const publicPath = '__basepath__';
     const playIcon = './assets/dog.svg';
     const hostIcon = './assets/dog-host.svg';
     const joinIcon = './assets/dog-join.svg';

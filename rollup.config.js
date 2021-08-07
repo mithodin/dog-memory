@@ -7,6 +7,7 @@ import sveltePreprocess from 'svelte-preprocess';
 import css from 'rollup-plugin-css-only';
 import typescript from '@rollup/plugin-typescript';
 import json from '@rollup/plugin-json';
+import replace from '@rollup/plugin-replace';
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -44,6 +45,9 @@ export default {
         dir: 'public/build/',
     },
     plugins: [
+        replace({
+            '__basepath__': production ? 'dog-memory' : ''
+        }),
         svelte({
             preprocess: sveltePreprocess({ sourceMap: !production }),
             compilerOptions: {
