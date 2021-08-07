@@ -9,7 +9,7 @@
     export let columns: number;
 
     const dispatch = createEventDispatcher<{ cardSelected: number }>();
-    const backside = '/assets/backside.jpg';
+    const backside = './assets/backside.jpg';
     const debouncer$ = new Subject<number>();
     debouncer$.pipe(
         filter(() => active),
