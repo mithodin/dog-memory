@@ -13,7 +13,8 @@
         "playerName": "What's your name, player {playerIndex}?",
         "yourName": "What's your name?",
         "gameCode": "Enter your game code",
-        "ready": "Ready to play?"
+        "ready": "Ready to play?",
+        "kiStrength": "Choose AI strength"
     },
     "img": {
         "frontside": {
@@ -28,6 +29,11 @@
         "loading": "Loading...",
         "playerPlaceholder": "player {playerIndex}",
         "playerLeft": "player left the game",
+        "ki": {
+            "easy": "puppy",
+            "normal": "he wants to play",
+            "hard": "merciless"
+        },
         "over": {
             "title": "game over",
             "draw": "it's a draw",

@@ -13,7 +13,8 @@
         "playerName": "Wie heißt du, Spieler*in {playerIndex}?",
         "yourName": "Wie heißt du?",
         "gameCode": "Gib einen Spielcode ein",
-        "ready": "Bereit?"
+        "ready": "Bereit?",
+        "kiStrength": "Wähle die Stärke des Computergegners"
     },
     "img": {
         "frontside": {
@@ -28,6 +29,11 @@
         "loading": "Lade Bilder...",
         "playerPlaceholder": "Spieler*in {playerIndex}",
         "playerLeft": "Spieler hat das Spiel verlassen",
+        "ki": {
+            "easy": "Welpe",
+            "normal": "Er möchte nur spielen",
+            "hard": "gnadenlos"
+        },
         "over": {
             "title": "Spiel beendet",
             "draw": "Unentschieden.",
