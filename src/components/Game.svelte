@@ -71,9 +71,7 @@
         setActivePlayer(index: number): void {
             activePlayer = index;
         },
-        setGameCode(code: string): void {
-            gameCode = code;
-        },
+        setGameCode(_: string): void {},
         setNumberOfPlayers(players: number): void {
             playerNames = range(players).map((index) => $t('game.playerPlaceholder', { values: { playerIndex: index+1 }}));
         },
@@ -145,7 +143,7 @@
     }
 
     function setUpHost(): LocalGame {
-        const player1 = new LocalPlayer(boardController, headerController, modalController);
+        const player1 = new LocalPlayer(boardController, { ...headerController, setGameCode(code: string) { gameCode = code; }}, modalController);
         const player2 = new RemotePlayer();
 
         return new LocalGame([player1, player2], numPictures);
