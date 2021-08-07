@@ -5,14 +5,14 @@
     import Game from './components/Game.svelte';
     import Modal from './components/Modal.svelte';
     import { GameMode } from './services/game';
-    import { publicPath } from '../svelte.config';
 
     export let url = '';
 
-    const playIcon = '/assets/dog.svg';
-    const hostIcon = '/assets/dog-host.svg';
-    const joinIcon = '/assets/dog-join.svg';
-    const kiIcon = '/assets/dog-ki.svg';
+    const publicPath = '/dog-memory';
+    const playIcon = './assets/dog.svg';
+    const hostIcon = './assets/dog-host.svg';
+    const joinIcon = './assets/dog-join.svg';
+    const kiIcon = './assets/dog-ki.svg';
 </script>
 
 {#if !$isLoading}
