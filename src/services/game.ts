@@ -4,7 +4,7 @@ import type { ObservableResponse } from '../utils/utils';
 import { createArray, range } from '../utils/utils';
 import type { Observable } from 'rxjs';
 import {
-    AsyncSubject,
+    AsyncSubject, concatMap,
     delay,
     EMPTY,
     filter,
@@ -25,7 +25,6 @@ import {
     toArray
 } from 'rxjs';
 import type { MemoryPlayer, PlayerCardSelected, PlayerLeave, PlayerName } from './player';
-import { waitUntilNextReady } from '../utils/wait-until-next-ready';
 
 const dogApiURL = 'https://random.dog/';
 
@@ -253,49 +252,50 @@ export class LocalGame implements MemoryGame {
 
     private runTurn(activePlayer: number, cards: Array<CardConfig>): Observable<TurnOver> {
         let selectedIndices: Array<number> = [];
-        const cardProcessed$: Subject<void> = new Subject<void>();
         const turnOver$: AsyncSubject<void> = new AsyncSubject<void>();
         return this.getCardsFrom(activePlayer).pipe(
-            waitUntilNextReady(cardProcessed$),
             takeUntil(turnOver$),
-            filter(selected => cards[selected.card].state === CardState.HIDDEN),
-            tap(selected => {
-                cards[selected.card].state = CardState.REVEALED;
-                selectedIndices.push(selected.card);
-            }),
-            switchMap( selected => this.toAll({ card: selected.card }, 'cardRevealed').pipe(toArray())),
-            switchMap( () => {
-                if( selectedIndices.length === 1 ){
-                    cardProcessed$.next();
-                    return EMPTY;
-                }
-                if( selectedIndices.length === 2 ){
-                    const selectedCards = selectedIndices.map(sel => cards[sel]);
-                    if( selectedCards[0].pictureURL === selectedCards[1].pictureURL ){
-                        selectedCards[0].state = CardState.SOLVED;
-                        selectedCards[1].state = CardState.SOLVED;
-                        selectedCards[0].solvedBy = activePlayer;
-                        selectedCards[1].solvedBy = activePlayer;
-                        const turnOver = this.allCardsSolved(cards);
-                        return this.toAll({ cards: selectedIndices as [number, number], solvedBy: activePlayer }, 'cardsSolved').pipe(toArray(),mapTo({ over: turnOver}))
-                    } else {
-                        selectedCards[0].state = CardState.HIDDEN;
-                        selectedCards[1].state = CardState.HIDDEN;
-                        return of(null).pipe(
-                            delay(1500),
-                            switchMap(() => this.toAll(undefined, 'cardsHidden').pipe(toArray(), mapTo({ over: true })))
-                        );
-                    }
-                }
-                return EMPTY;
-            }),
-            tap((turnOver) => {
-                selectedIndices = [];
-                if( turnOver.over ){
-                    turnOver$.next();
-                    turnOver$.complete();
-                }
-                cardProcessed$.next();
+            concatMap(selected => {
+               return of(selected).pipe(
+                   takeUntil(turnOver$),
+                   filter(selected => cards[selected.card].state === CardState.HIDDEN),
+                   tap(selected => {
+                       cards[selected.card].state = CardState.REVEALED;
+                       selectedIndices.push(selected.card);
+                   }),
+                   switchMap( selected => this.toAll({ card: selected.card }, 'cardRevealed').pipe(toArray())),
+                   switchMap( () => {
+                       if( selectedIndices.length === 1 ){
+                           return EMPTY;
+                       }
+                       if( selectedIndices.length === 2 ){
+                           const selectedCards = selectedIndices.map(sel => cards[sel]);
+                           if( selectedCards[0].pictureURL === selectedCards[1].pictureURL ){
+                               selectedCards[0].state = CardState.SOLVED;
+                               selectedCards[1].state = CardState.SOLVED;
+                               selectedCards[0].solvedBy = activePlayer;
+                               selectedCards[1].solvedBy = activePlayer;
+                               const turnOver = this.allCardsSolved(cards);
+                               return this.toAll({ cards: selectedIndices as [number, number], solvedBy: activePlayer }, 'cardsSolved').pipe(toArray(),mapTo({ over: turnOver}))
+                           } else {
+                               selectedCards[0].state = CardState.HIDDEN;
+                               selectedCards[1].state = CardState.HIDDEN;
+                               return of(null).pipe(
+                                   delay(1500),
+                                   switchMap(() => this.toAll(undefined, 'cardsHidden').pipe(toArray(), mapTo({ over: true })))
+                               );
+                           }
+                       }
+                       return EMPTY;
+                   }),
+                   tap((turnOver) => {
+                       selectedIndices = [];
+                       if( turnOver.over ){
+                           turnOver$.next();
+                           turnOver$.complete();
+                       }
+                   }),
+               )
             }),
             filter( turnOver => turnOver.over )
         );

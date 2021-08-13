@@ -2,15 +2,17 @@
     import { t } from 'svelte-i18n';
     import { modalQueue, modalStore } from '../services/modal';
     import type { ModalMessage } from '../services/modal';
-    import { Subject } from 'rxjs';
-    import { waitUntilNextReady } from '../utils/wait-until-next-ready';
+    import { concatMap, Subject, take } from 'rxjs';
 
     let userInput;
     const available: Subject<void> = new Subject<void>();
     modalQueue.pipe(
-        waitUntilNextReady(available)
-    ).subscribe((message) => {
-        modalStore.set(message);
+        concatMap( message => {
+            modalStore.set(message);
+            return available.pipe(take(1))
+        })
+    ).subscribe(() => {
+        userInput = undefined;
     });
 
     function keyPress(event: KeyboardEvent, message: ModalMessage): void {
@@ -36,10 +38,8 @@
             }
         }
         modalStore.set(null);
-        const input = userInput;
-        userInput = undefined;
         if (action) {
-            action(input);
+            action(userInput);
         }
         available.next();
     }
