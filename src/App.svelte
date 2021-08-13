@@ -6,9 +6,10 @@
     import Modal from './components/Modal.svelte';
     import { GameMode } from './services/game';
 
+    export let basepath = null;
     export let url = '';
 
-    const publicPath = { ...(__basepath__ ? {basepath: __basepath__} : {})};
+    const publicPath = { ...(basepath ? {basepath} : {})};
     const playIcon = './assets/dog.svg';
     const hostIcon = './assets/dog-host.svg';
     const joinIcon = './assets/dog-join.svg';

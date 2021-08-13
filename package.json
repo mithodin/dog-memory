@@ -11,6 +11,8 @@
         "test:watch": "npm test -- --watch"
     },
     "devDependencies": {
+        "@babel/core": "^7.15.0",
+        "@babel/preset-env": "^7.15.0",
         "@rollup/plugin-commonjs": "^19.0.1",
         "@rollup/plugin-json": "^4.1.0",
         "@rollup/plugin-node-resolve": "^13.0.2",
@@ -20,6 +22,7 @@
         "@tsconfig/svelte": "^2.0.0",
         "@types/jest": "^26.0.24",
         "@types/streamx": "^2.9.1",
+        "babel-jest": "^27.0.6",
         "jest": "^27.0.6",
         "prettier": "^2.3.2",
         "prettier-plugin-svelte": "^2.3.1",
@@ -57,8 +60,12 @@
                     "preprocess": true
                 }
             ],
-            "^.+\\.ts$": "ts-jest"
+            "^.+\\.ts$": "ts-jest",
+            "^.+\\.js$": "babel-jest"
         },
+        "transformIgnorePatterns": [
+          "node_modules/(?!svelte-routing)"
+        ],
         "moduleFileExtensions": [
             "js",
             "ts",
